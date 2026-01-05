@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Module 2: Category Analyzer - ADIZ Dashboard</title>
+  <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .header {
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 25px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    
+    .header h1 {
+      color: #667eea;
+      margin-bottom: 8px;
+    }
+    
+    .header p {
+      color: #666;
+      margin-bottom: 15px;
+    }
+    
+    .nav {
+      display: flex;
+      gap: 15px;
+    }
+    
+    .nav a {
+      text-decoration: none;
+      color: #667eea;
+      font-weight: 500;
+      padding: 8px 16px;
+      border-radius: 8px;
+      background: #f0f4ff;
+    }
+    
+    .nav a:hover {
+      background: #667eea;
+      color: white;
+    }
+    
+    .container {
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    
+    h2 {
+      color: #667eea;
+      margin-bottom: 20px;
+    }
+    
+    .controls {
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 25px;
+      margin-bottom: 30px;
+    }
+    
+    .control-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+    
+    .control-group label {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+      display: block;
+    }
+    
+    .control-group select {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      background: white;
+    }
+    
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 14px 32px;
+      border-radius: 10px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 15px;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+    
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 60px;
+      font-size: 1.3rem;
+      color: #667eea;
+    }
+    
+    .loading.active {
+      display: block;
+    }
+    
+    .results {
+      display: none;
+    }
+    
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+    
+    .summary-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 12px;
+    }
+    
+    .summary-card h3 {
+      font-size: 0.85rem;
+      opacity: 0.9;
+      margin-bottom: 8px;
+    }
+    
+    .summary-card .value {
+      font-size: 1.8rem;
+      font-weight: 700;
+    }
+    
+    .chart-container {
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      margin-bottom: 30px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    .chart-container h3 {
+      color: #667eea;
+      margin-bottom: 15px;
+    }
+    
+    .two-column {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    
+    @media (max-width: 768px) {
+      .two-column {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .event-list {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    
+    .event-item {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 10px;
+      border-left: 4px solid #667eea;
+    }
+    
+    .event-item .date {
+      font-weight: 600;
+      color: #667eea;
+    }
+    
+    .event-item .label {
+      color: #333;
+      margin: 5px 0;
+    }
+    
+    .event-item .stats {
+      display: flex;
+      gap: 10px;
+      font-size: 0.85rem;
+      color: #666;
+    }
+    
+    .event-item .stats span {
+      background: white;
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+    
+    #filterInfo {
+      color: #666;
+      font-size: 0.9rem;
+      margin-top: 10px;
+      padding: 10px;
+      background: white;
+      border-radius: 6px;
+    }
+    
+    .tooltip {
+      position: relative;
+      display: inline-block;
+      cursor: help;
+      margin-left: 5px;
+      color: #667eea;
+    }
+    
+    .tooltip .tooltiptext {
+      visibility: hidden;
+      width: 300px;
+      background-color: #333;
+      color: #fff;
+      text-align: left;
+      border-radius: 8px;
+      padding: 12px;
+      position: absolute;
+      z-index: 1;
+      bottom: 125%;
+      left: 50%;
+      margin-left: -150px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+    
+    .tooltip .tooltiptext::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      margin-left: -5px;
+      border-width: 5px;
+      border-style: solid;
+      border-color: #333 transparent transparent transparent;
+    }
+    
+    .tooltip:hover .tooltiptext {
+      visibility: visible;
+      opacity: 1;
+    }
+    
+    .chart-explanation {
+      background: #f0f4ff;
+      border-left: 4px solid #667eea;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+    
+    .chart-explanation strong {
+      color: #667eea;
+    }
+    
+    .subfilter-section {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 2px solid #e0e0e0;
+    }
+    
+    .subfilter-section h4 {
+      color: #667eea;
+      margin-bottom: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>📊 Module 2: Event Stack Analyzer</h1>
+    <p>Stack multiple events of the same type to see average ADIZ patterns before/after that event type</p>
+    <div style="background: #f0f4ff; padding: 15px; border-radius: 8px; margin-top: 15px; font-size: 0.9rem; color: #555;">
+      <strong>How it works:</strong> Select events (e.g., "all US destroyer transits"), align them at day 0, 
+      then average the ADIZ response across all instances. This reveals typical patterns you can't see 
+      in the regular visualizer where events occur on different dates.
+    </div>
+    <div class="nav">
+      <a href="index.html">← Home</a>
+      <a href="visualizer.html">Visualizer</a>
+      <a href="analyzers.html">Module 1</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <h2>Filter Events to Analyze</h2>
+    
+    <div class="controls">
+      <!-- Primary Filters -->
+      <div class="control-row">
+        <div class="control-group">
+          <label>Category *</label>
+          <select id="categorySelect">
+            <option value="">-- Select category --</option>
+            <option value="arms">Arms Sales</option>
+            <option value="diplomatic">Diplomatic</option>
+            <option value="ships">Ship Transits</option>
+            <option value="bills">Legislative Bills</option>
+            <option value="political">Political/Symbolic</option>
+          </select>
+        </div>
+        
+        <div class="control-group">
+          <label>Year</label>
+          <select id="yearSelect">
+            <option value="ALL">All Years</option>
+          </select>
+        </div>
+        
+        <div class="control-group">
+          <label>Window Size</label>
+          <select id="windowSize">
+            <option value="7">±7 days</option>
+            <option value="14" selected>±14 days</option>
+            <option value="21">±21 days</option>
+          </select>
+        </div>
+      </div>
+      
+      <!-- Arms Sales Sub-Filters -->
+      <div id="armsFilters" class="subfilter-section" style="display: none;">
+        <h4>🎯 Arms Sales Filters</h4>
+        <div class="control-row">
+          <div class="control-group">
+            <label>Value Tier</label>
+            <select id="arms_valueTier">
+              <option value="">All Sizes</option>
+            </select>
+          </div>
+          <div class="control-group">
+            <label>Domain</label>
+            <select id="arms_domain">
+              <option value="">All Domains</option>
+            </select>
+          </div>
+          <div class="control-group">
+            <label>Type</label>
+            <select id="arms_type">
+              <option value="">All Types</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Ships Sub-Filters -->
+      <div id="shipsFilters" class="subfilter-section" style="display: none;">
+        <h4>🚢 Ship Transit Filters</h4>
+        <div class="control-row">
+          <div class="control-group">
+            <label>Country</label>
+            <select id="ships_country">
+              <option value="">All Countries</option>
+            </select>
+          </div>
+          <div class="control-group">
+            <label>Ship Type</label>
+            <select id="ships_type">
+              <option value="">All Types</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Diplomatic Sub-Filters -->
+      <div id="diplomaticFilters" class="subfilter-section" style="display: none;">
+        <h4>🤝 Diplomatic Filters</h4>
+        <div class="control-row">
+          <div class="control-group">
+            <label>Official Level</label>
+            <select id="diplomatic_level">
+              <option value="">All Levels</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Bills Sub-Filters -->
+      <div id="billsFilters" class="subfilter-section" style="display: none;">
+        <h4>📜 Legislative Bill Filters</h4>
+        <div class="control-row">
+          <div class="control-group">
+            <label>Milestone</label>
+            <select id="bills_milestone">
+              <option value="">All Milestones</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      
+      <button onclick="runAnalysis()">📊 Analyze Pattern</button>
+      <div id="filterInfo"></div>
+    </div>
+    
+    <div class="loading" id="loading">
+      📊 Analyzing events...
+    </div>
+    
+    <div id="results" class="results">
+      <!-- Summary Cards -->
+      <h3 style="color: #667eea; margin-bottom: 15px;">📊 Summary Statistics</h3>
+      
+      <div style="margin-bottom: 30px;">
+        <h4 style="color: #555; margin-bottom: 10px; font-size: 0.9rem;">REACTION TIMING (When Does It Happen?)</h4>
+        <div class="summary-grid">
+          <div class="summary-card">
+            <h3>
+              Peak Occurs On
+              <span class="tooltip">ℹ️
+                <span class="tooltiptext">On average, which day after the event sees the highest ADIZ? Day 0 = immediate, Day 3 = delayed reaction.</span>
+              </span>
+            </h3>
+            <div class="value">Day <span id="maxSpikeDay">--</span></div>
+          </div>
+          <div class="summary-card">
+            <h3>
+              Avg Time to Peak
+              <span class="tooltip">ℹ️
+                <span class="tooltiptext">Average days until each event reaches its maximum ADIZ. Shows how quickly reactions develop.</span>
+              </span>
+            </h3>
+            <div class="value"><span id="avgTimeToPeak">--</span> days</div>
+          </div>
+          <div class="summary-card">
+            <h3>
+              Peak Day ADIZ
+              <span class="tooltip">ℹ️
+                <span class="tooltiptext">Average ADIZ count on the peak day. This is the typical highest point of the response curve.</span>
+              </span>
+            </h3>
+            <div class="value" id="maxSpikeValue">--</div>
+          </div>
+        </div>
+      </div>
+      
+      <div style="margin-bottom: 30px;">
+        <h4 style="color: #555; margin-bottom: 10px; font-size: 0.9rem;">REACTION SEVERITY (How Big Is The Response?)</h4>
+        <div class="summary-grid">
+          <div class="summary-card">
+            <h3>
+              Baseline ADIZ
+              <span class="tooltip">ℹ️
+                <span class="tooltiptext">Average ADIZ in the 30 days BEFORE events. This is the "normal" level before the event occurs.</span>
+              </span>
+            </h3>
+            <div class="value" id="avgBaseline">--</div>
+          </div>
+          <div class="summary-card">
+            <h3>
+              Post-Event ADIZ
+              <span class="tooltip">ℹ️
+                <span class="tooltiptext">Average ADIZ in the 7 days AFTER events. Shows the immediate response level.</span>
+              </span>
+            </h3>
+            <div class="value" id="avg7Day">--</div>
+          </div>
+          <div class="summary-card">
+            <h3>
+              Avg Increase
+              <span class="tooltip">ℹ️
+                <span class="tooltiptext">Average increase from baseline to post-event. Example: "+15" means China sent 15 MORE aircraft on average after this event type.</span>
+              </span>
+            </h3>
+            <div class="value" id="avgIncrease">--</div>
+          </div>
+        </div>
+      </div>
+      
+      <div style="margin-bottom: 30px;">
+        <h4 style="color: #555; margin-bottom: 10px; font-size: 0.9rem;">ADDITIONAL METRICS</h4>
+        <div class="summary-grid">
+          <div class="summary-card">
+            <h3>
+              Events Analyzed
+              <span class="tooltip">ℹ️
+                <span class="tooltiptext">Number of events matching your filters that were stacked and averaged together.</span>
+              </span>
+            </h3>
+            <div class="value" id="eventCount">--</div>
+          </div>
+          <div class="summary-card">
+            <h3>
+              Avg Peak
+              <span class="tooltip">ℹ️
+                <span class="tooltiptext">Average highest ADIZ count seen anywhere in the window (not just on peak day). Shows maximum response across all days.</span>
+              </span>
+            </h3>
+            <div class="value" id="avgPeak">--</div>
+          </div>
+          <div class="summary-card">
+            <h3>
+              Median Peak
+              <span class="tooltip">ℹ️
+                <span class="tooltiptext">Middle peak value (50th percentile). Less affected by extreme outliers like Pelosi visit. Shows "typical" response.</span>
+              </span>
+            </h3>
+            <div class="value" id="medianPeak">--</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Average Response Curve -->
+      <div class="chart-container">
+        <h3>Average ADIZ Response Pattern (Mean ± Std Dev)</h3>
+        
+        <div class="chart-explanation">
+          <strong>How to read this chart:</strong><br>
+          • <strong>X-axis</strong>: Days before/after event (0 = event day). Example: Ship transit on Oct 10, Jan 20, and Mar 15 are ALL aligned at day 0.<br>
+          • <strong>Y-axis</strong>: ADIZ incursion count (average across all <span id="chartEventCount">N</span> stacked events).<br>
+          • <strong>Blue line</strong>: Average ADIZ response across all instances of this event type.<br>
+          • <strong>Shaded area</strong>: ± standard deviation (shows variability). Wide band = inconsistent, narrow = consistent.<br>
+          • <strong>Green line</strong>: Event date (day 0) - everything is aligned here.<br><br>
+          <strong>Why this matters:</strong> Unlike the visualizer (which shows events on calendar dates), this stacks events on top of each other 
+          to reveal the <em>typical pattern</em> for this event type. You can see if ADIZ spikes immediately, if there's a pre-event buildup, 
+          or if effects persist for days/weeks.
+        </div>
+        
+        <div id="avgCurveChart"></div>
+      </div>
+      
+      <!-- Top/Bottom Events -->
+      <div class="two-column">
+        <div>
+          <h3 style="color: #667eea; margin-bottom: 15px;">🔥 Highest Peak Events</h3>
+          <div class="event-list" id="topEvents"></div>
+        </div>
+        <div>
+          <h3 style="color: #667eea; margin-bottom: 15px;">📉 Lowest Peak Events</h3>
+          <div class="event-list" id="bottomEvents"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import CategoryAnalyzer from './js/analyzers/categoryAnalyzer.js';
+    import DataConnector from './js/core/dataConnector.js';
+    
+    let currentFilters = {};
+    
+    // Initialize
+    async function init() {
+      await loadEmbeddedData();
+    }
+    
+    async function loadEmbeddedData() {
+      try {
+        const response = await fetch('./visualizer.html');
+        const htmlContent = await response.text();
+        const dataMatch = htmlContent.match(/const DATA\s*=\s*(\{[\s\S]*?\});/);
+        const DATA = new Function('return ' + dataMatch[1])();
+        
+        DataConnector.loadFromObject(DATA);
+        setupUI();
+      } catch (error) {
+        alert('Error loading data: ' + error.message);
+      }
+    }
+    
+    function setupUI() {
+      // Populate year dropdown
+      const years = DataConnector.getAvailableYears();
+      const yearSelect = document.getElementById('yearSelect');
+      years.slice(1).forEach(year => {
+        const option = document.createElement('option');
+        option.value = year;
+        option.textContent = year;
+        yearSelect.appendChild(option);
+      });
+      
+      // Populate sub-filter dropdowns
+      populateSubFilters();
+      
+      // Event listeners
+      document.getElementById('categorySelect').addEventListener('change', onCategoryChange);
+      document.getElementById('yearSelect').addEventListener('change', updateFilterInfo);
+      
+      // Add listeners to all sub-filters
+      document.querySelectorAll('.subfilter-section select').forEach(select => {
+        select.addEventListener('change', updateFilterInfo);
+      });
+    }
+    
+    function populateSubFilters() {
+      // Arms filters
+      const arms = DataConnector.currentData.arms_sales || [];
+      populateDropdown('arms_valueTier', getUniqueValues(arms, 'value_tier'));
+      populateDropdown('arms_domain', getUniqueValues(arms, 'domain'));
+      populateDropdown('arms_type', getUniqueValues(arms, 'offensive_defensive'));
+      
+      // Ships filters
+      const ships = DataConnector.currentData.ships || [];
+      populateDropdown('ships_country', getUniqueValues(ships, 'Country'));
+      populateDropdown('ships_type', getUniqueValues(ships, 'Ship_Type'));
+      
+      // Diplomatic filters
+      const diplomatic = DataConnector.currentData.diplomatic || [];
+      populateDropdown('diplomatic_level', getUniqueValues(diplomatic, 'US_Official_Level'));
+      
+      // Bills filters
+      const bills = DataConnector.currentData.bills || [];
+      populateDropdown('bills_milestone', getUniqueValues(bills, 'Milestone'));
+    }
+    
+    function getUniqueValues(dataset, field) {
+      const values = new Set();
+      dataset.forEach(item => {
+        if (item[field]) values.add(String(item[field]));
+      });
+      return Array.from(values).filter(v => v && v !== 'null').sort();
+    }
+    
+    function populateDropdown(id, values) {
+      const select = document.getElementById(id);
+      values.forEach(val => {
+        const option = document.createElement('option');
+        option.value = val;
+        option.textContent = val;
+        select.appendChild(option);
+      });
+    }
+    
+    function onCategoryChange() {
+      const category = document.getElementById('categorySelect').value;
+      
+      // Hide all sub-filters
+      document.querySelectorAll('.subfilter-section').forEach(el => el.style.display = 'none');
+      
+      // Show relevant sub-filters
+      if (category === 'arms') {
+        document.getElementById('armsFilters').style.display = 'block';
+      } else if (category === 'ships') {
+        document.getElementById('shipsFilters').style.display = 'block';
+      } else if (category === 'diplomatic') {
+        document.getElementById('diplomaticFilters').style.display = 'block';
+      } else if (category === 'bills') {
+        document.getElementById('billsFilters').style.display = 'block';
+      }
+      
+      updateFilterInfo();
+    }
+    
+    function updateFilterInfo() {
+      const filters = buildFilters();
+      if (!filters.category) {
+        document.getElementById('filterInfo').textContent = '';
+        return;
+      }
+      
+      const events = DataConnector.getEvents(filters);
+      const filterDesc = Object.keys(filters)
+        .filter(k => k !== 'category')
+        .map(k => `${k}: ${filters[k]}`)
+        .join(', ');
+      
+      document.getElementById('filterInfo').textContent = 
+        `${events.length} events match (${filterDesc || 'no subfilters'})`;
+    }
+    
+    function buildFilters() {
+      const category = document.getElementById('categorySelect').value;
+      if (!category) return {};
+      
+      const filters = { category };
+      
+      // Year
+      const year = document.getElementById('yearSelect').value;
+      if (year !== 'ALL') filters.year = year;
+      
+      // Category-specific filters
+      if (category === 'arms') {
+        const valueTier = document.getElementById('arms_valueTier').value;
+        const domain = document.getElementById('arms_domain').value;
+        const type = document.getElementById('arms_type').value;
+        if (valueTier) filters.customFilter = e => e.fields.value_tier === valueTier;
+        if (domain && !valueTier) filters.customFilter = e => e.fields.domain === domain;
+        if (type && !valueTier && !domain) filters.customFilter = e => e.fields.offensive_defensive === type;
+        // Combine filters if multiple
+        if (valueTier && domain) {
+          filters.customFilter = e => e.fields.value_tier === valueTier && e.fields.domain === domain;
+        }
+        if (valueTier && type) {
+          filters.customFilter = e => e.fields.value_tier === valueTier && e.fields.offensive_defensive === type;
+        }
+        if (domain && type && !valueTier) {
+          filters.customFilter = e => e.fields.domain === domain && e.fields.offensive_defensive === type;
+        }
+        if (valueTier && domain && type) {
+          filters.customFilter = e => 
+            e.fields.value_tier === valueTier && 
+            e.fields.domain === domain && 
+            e.fields.offensive_defensive === type;
+        }
+      } else if (category === 'ships') {
+        const country = document.getElementById('ships_country').value;
+        const shipType = document.getElementById('ships_type').value;
+        if (country && shipType) {
+          filters.customFilter = e => 
+            String(e.fields.Country).includes(country) && e.fields.Ship_Type === shipType;
+        } else if (country) {
+          filters.customFilter = e => String(e.fields.Country).includes(country);
+        } else if (shipType) {
+          filters.customFilter = e => e.fields.Ship_Type === shipType;
+        }
+      } else if (category === 'diplomatic') {
+        const level = document.getElementById('diplomatic_level').value;
+        if (level) filters.customFilter = e => e.fields.US_Official_Level === level;
+      } else if (category === 'bills') {
+        const milestone = document.getElementById('bills_milestone').value;
+        if (milestone) filters.customFilter = e => e.fields.Milestone === milestone;
+      }
+      
+      return filters;
+    }
+    
+    window.runAnalysis = function() {
+      const filters = buildFilters();
+      
+      if (!filters.category) {
+        alert('Please select a category');
+        return;
+      }
+      
+      const windowSize = parseInt(document.getElementById('windowSize').value);
+      
+      document.getElementById('loading').classList.add('active');
+      document.getElementById('results').style.display = 'none';
+      
+      setTimeout(() => {
+        try {
+          const analysis = CategoryAnalyzer.analyze(filters, { windowSize });
+          displayResults(analysis);
+          
+          document.getElementById('loading').classList.remove('active');
+          document.getElementById('results').style.display = 'block';
+        } catch (error) {
+          document.getElementById('loading').classList.remove('active');
+          alert('Error: ' + error.message);
+        }
+      }, 300);
+    };
+    
+    function displayResults(analysis) {
+      const summary = CategoryAnalyzer.getSummary();
+      
+      // Timing metrics
+      document.getElementById('maxSpikeDay').textContent = summary.maxSpikeDay;
+      document.getElementById('avgTimeToPeak').textContent = summary.avgTimeToPeak;
+      document.getElementById('maxSpikeValue').textContent = summary.maxSpikeValue;
+      
+      // Severity metrics
+      document.getElementById('avgBaseline').textContent = summary.avgBaseline;
+      document.getElementById('avg7Day').textContent = summary.avg7DaySpike;
+      document.getElementById('avgIncrease').textContent = summary.avgIncrease;
+      
+      // Additional metrics
+      document.getElementById('eventCount').textContent = summary.eventCount;
+      document.getElementById('avgPeak').textContent = summary.avgPeak;
+      document.getElementById('medianPeak').textContent = summary.medianPeak;
+      document.getElementById('chartEventCount').textContent = summary.eventCount;
+      
+      plotAverageCurve();
+      displayTopBottom();
+    }
+    
+    function plotAverageCurve() {
+      const data = CategoryAnalyzer.getAverageCurveData();
+      
+      const traces = [
+        {
+          x: data.offsets,
+          y: data.lowerBound,
+          type: 'scatter',
+          mode: 'lines',
+          name: 'Mean - σ',
+          line: { color: '#667eea', width: 1, dash: 'dash' },
+          showlegend: false
+        },
+        {
+          x: data.offsets,
+          y: data.upperBound,
+          type: 'scatter',
+          mode: 'lines',
+          name: 'Mean + σ',
+          line: { color: '#667eea', width: 1, dash: 'dash' },
+          fill: 'tonexty',
+          fillcolor: 'rgba(102, 126, 234, 0.2)',
+          showlegend: false
+        },
+        {
+          x: data.offsets,
+          y: data.mean,
+          type: 'scatter',
+          mode: 'lines+markers',
+          name: 'Average',
+          line: { color: '#667eea', width: 3 },
+          marker: { size: 6 }
+        },
+        {
+          x: [0, 0],
+          y: [0, data.maxValue],
+          type: 'scatter',
+          mode: 'lines',
+          name: 'Event Date',
+          line: { color: 'green', width: 2, dash: 'dot' }
+        }
+      ];
+      
+      const layout = {
+        xaxis: { title: 'Days from Event', zeroline: true },
+        yaxis: { title: 'ADIZ Count' },
+        hovermode: 'x unified',
+        height: 450
+      };
+      
+      Plotly.newPlot('avgCurveChart', traces, layout);
+    }
+    
+    function displayTopBottom() {
+      const topEvents = CategoryAnalyzer.getTopEvents();
+      const bottomEvents = CategoryAnalyzer.getBottomEvents();
+      
+      document.getElementById('topEvents').innerHTML = topEvents.map(e => `
+        <div class="event-item">
+          <div class="date">${e.date}</div>
+          <div class="label">${e.label}</div>
+          <div class="stats">
+            <span>Peak: ${e.peak}</span>
+            <span>7-Day: ${e.avg7Day}</span>
+            <span>Δ: ${e.delta}</span>
+          </div>
+        </div>
+      `).join('');
+      
+      document.getElementById('bottomEvents').innerHTML = bottomEvents.map(e => `
+        <div class="event-item">
+          <div class="date">${e.date}</div>
+          <div class="label">${e.label}</div>
+          <div class="stats">
+            <span>Peak: ${e.peak}</span>
+            <span>7-Day: ${e.avg7Day}</span>
+            <span>Δ: ${e.delta}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+    
+    init();
+  </script>
+</body>
+</html>

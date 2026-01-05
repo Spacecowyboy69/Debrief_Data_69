@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ADIZ Event Analyzers - Module 1</title>
+  <script src="https://cdn.plot.ly/plotly-2.18.0.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: #f5f7fa;
+      min-height: 100vh;
+    }
+    
+    header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px 40px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    header h1 {
+      font-size: 1.8rem;
+      margin-bottom: 5px;
+    }
+    
+    header p {
+      opacity: 0.9;
+      font-size: 0.95rem;
+    }
+    
+    nav {
+      background: white;
+      padding: 15px 40px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      display: flex;
+      gap: 10px;
+    }
+    
+    nav a {
+      color: #667eea;
+      text-decoration: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      transition: background 0.3s;
+    }
+    
+    nav a:hover {
+      background: #f0f2ff;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 30px;
+    }
+    
+    .controls {
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      margin-bottom: 25px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    .control-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .control-group {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    label {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+    }
+    
+    select, input {
+      padding: 10px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      transition: border-color 0.3s;
+    }
+    
+    select:focus, input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: background 0.3s;
+    }
+    
+    button:hover {
+      background: #764ba2;
+    }
+    
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    
+    .results {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 25px;
+    }
+    
+    .summary-card {
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    .summary-card h2 {
+      color: #667eea;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid #f0f0f0;
+    }
+    
+    .event-info {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .event-info h3 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 1.1rem;
+    }
+    
+    .event-info p {
+      color: #666;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+    
+    .metric {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .metric:last-child {
+      border-bottom: none;
+    }
+    
+    .metric-label {
+      color: #666;
+      font-weight: 500;
+    }
+    
+    .metric-value {
+      color: #333;
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+    
+    .metric-value.positive {
+      color: #dc3545;
+    }
+    
+    .metric-value.negative {
+      color: #28a745;
+    }
+    
+    .chart-container {
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    .confounders {
+      margin-top: 25px;
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    .confounders h3 {
+      color: #667eea;
+      margin-bottom: 15px;
+    }
+    
+    .confounder-list {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .confounder-item {
+      background: #f8f9fa;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 8px;
+      border-left: 3px solid #667eea;
+    }
+    
+    .confounder-item strong {
+      color: #333;
+      display: block;
+      margin-bottom: 5px;
+    }
+    
+    .confounder-item span {
+      color: #666;
+      font-size: 0.85rem;
+    }
+    
+    .no-data {
+      text-align: center;
+      padding: 60px;
+      color: #999;
+    }
+    
+    .no-data h3 {
+      color: #666;
+      margin-bottom: 10px;
+    }
+    
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 40px;
+      color: #667eea;
+      font-size: 1.1rem;
+    }
+    
+    .loading.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🔍 ADIZ Event Analyzers</h1>
+    <p>Module 1: Single Event Analysis (MVP)</p>
+  </header>
+  
+  <nav>
+    <a href="index.html">← Home</a>
+    <a href="visualizer.html">Visualizer</a>
+  </nav>
+  
+  <div class="container">
+    <div class="controls">
+      <h2 style="margin-bottom: 20px; color: #333;">Analysis Controls</h2>
+      
+      <div class="control-row">
+        <div class="control-group">
+          <label>Event Category</label>
+          <select id="categorySelect">
+            <option value="all">All Categories</option>
+          </select>
+        </div>
+        
+        <div class="control-group">
+          <label>Year Filter</label>
+          <select id="yearSelect">
+            <option value="ALL">All Years</option>
+          </select>
+        </div>
+        
+        <div class="control-group">
+          <label>Select Event</label>
+          <select id="eventSelect">
+            <option value="">-- Select an event --</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="control-row">
+        <div class="control-group">
+          <label>Window Size (±days)</label>
+          <select id="windowSize">
+            <option value="3">±3 days</option>
+            <option value="7" selected>±7 days</option>
+            <option value="14">±14 days</option>
+            <option value="30">±30 days</option>
+          </select>
+        </div>
+        
+        <div class="control-group">
+          <label>Baseline Period</label>
+          <select id="baselineDays">
+            <option value="30" selected>30 days</option>
+            <option value="60">60 days</option>
+            <option value="90">90 days</option>
+          </select>
+        </div>
+        
+        <div class="control-group">
+          <label>Dataset Type</label>
+          <select id="datasetSelect">
+            <option value="all">All Datasets</option>
+          </select>
+        </div>
+        
+        <div class="control-group" style="display: flex; align-items: flex-end;">
+          <button onclick="clearFilters()" style="background: #6c757d; width: 100%;">Clear Filters</button>
+        </div>
+      </div>
+      
+      <!-- Sub-filters (appears dynamically based on dataset) -->
+      <div id="subFilters" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 2px solid #f0f0f0;">
+        <h3 style="margin-bottom: 15px; color: #667eea; font-size: 1rem;">Additional Filters</h3>
+        <div class="control-row" id="subFilterControls">
+          <!-- Dynamic sub-filters will be inserted here -->
+        </div>
+      </div>
+      
+      <div style="display: flex; gap: 10px; align-items: center; margin-top: 20px;">
+        <button onclick="runAnalysis()">🔍 Analyze Event</button>
+        <span id="eventCounter" style="color: #666; font-size: 0.9rem;"></span>
+      </div>
+    </div>
+    
+    <div class="loading" id="loading">
+      Analyzing event...
+    </div>
+    
+    <div id="noData" class="no-data">
+      <h3>No data loaded</h3>
+      <p>Please load a dataset from the <a href="index.html">home page</a> first.</p>
+    </div>
+    
+    <div id="results" style="display: none;">
+      <div class="results">
+        <div>
+          <div class="summary-card">
+            <h2>Event Impact Summary</h2>
+            
+            <div class="event-info" id="eventInfo">
+              <h3>Selected Event</h3>
+              <p><strong>Date:</strong> <span id="eventDate"></span></p>
+              <p><strong>Category:</strong> <span id="eventCategory"></span></p>
+              <p id="eventDescription"></p>
+            </div>
+            
+            <div id="metrics">
+              <!-- Metrics will be inserted here -->
+            </div>
+          </div>
+          
+          <div class="confounders">
+            <h3>Context: Other Events in Window (<span id="confounderCount">0</span>)</h3>
+            <div class="confounder-list" id="confounderList">
+              <!-- Confounders will be inserted here -->
+            </div>
+          </div>
+        </div>
+        
+        <div>
+          <div class="chart-container">
+            <h2 style="margin-bottom: 20px; color: #667eea;">ADIZ Response Timeline</h2>
+            <div id="chart"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script type="module">
+    import DataConnector from './js/core/dataConnector.js';
+    import SingleEventAnalyzer from './js/analyzers/singleEvent.js';
+    
+    // Initialize
+    async function init() {
+      // Always load embedded data automatically
+      await loadEmbeddedData();
+      
+      if (!DataConnector.isLoaded()) {
+        document.getElementById('noData').style.display = 'block';
+      }
+    }
+    
+    async function loadEmbeddedData() {
+      try {
+        // Try to fetch the visualizer file
+        const response = await fetch('./visualizer.html');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const htmlContent = await response.text();
+        
+        const dataMatch = htmlContent.match(/const DATA\s*=\s*(\{[\s\S]*?\});/);
+        if (!dataMatch) {
+          throw new Error('Could not find DATA in visualizer.html');
+        }
+        
+        const dataStr = dataMatch[1];
+        const DATA = new Function('return ' + dataStr)();
+        
+        DataConnector.loadFromObject(DATA);
+        setupUI();
+        
+        console.log('Data loaded successfully:', DataConnector.eventIndex.length, 'events');
+      } catch (error) {
+        console.error('Error loading embedded data:', error);
+        
+        // Show helpful error message
+        const noDataDiv = document.getElementById('noData');
+        noDataDiv.innerHTML = `
+          <h3>Unable to load data automatically</h3>
+          <p style="color: #dc3545; margin: 10px 0;">${error.message}</p>
+          <p>This may happen when opening files directly from disk (file://) due to browser security.</p>
+          <p><strong>Solutions:</strong></p>
+          <ul style="text-align: left; display: inline-block; margin: 15px 0;">
+            <li>Use a local web server (recommended)</li>
+            <li>Open via http://localhost or http://127.0.0.1</li>
+            <li>Or use the manual data loader below</li>
+          </ul>
+          <div style="margin-top: 20px;">
+            <button onclick="showManualLoader()" style="background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer;">
+              Show Manual Data Loader
+            </button>
+          </div>
+        `;
+        noDataDiv.style.display = 'block';
+      }
+    }
+    
+    function setupUI() {
+      document.getElementById('noData').style.display = 'none';
+      
+      // Populate category dropdown
+      const categories = DataConnector.getCategories();
+      const categorySelect = document.getElementById('categorySelect');
+      categories.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat;
+        option.textContent = cat.charAt(0).toUpperCase() + cat.slice(1);
+        categorySelect.appendChild(option);
+      });
+      
+      // Populate year dropdown
+      const years = DataConnector.getAvailableYears();
+      const yearSelect = document.getElementById('yearSelect');
+      years.forEach(year => {
+        const option = document.createElement('option');
+        option.value = year;
+        option.textContent = year;
+        yearSelect.appendChild(option);
+      });
+      
+      // Populate dataset dropdown
+      const datasets = Object.keys(DataConnector.currentData).filter(key => 
+        key !== 'adiz_baseline' && Array.isArray(DataConnector.currentData[key])
+      );
+      const datasetSelect = document.getElementById('datasetSelect');
+      datasets.forEach(dataset => {
+        const option = document.createElement('option');
+        option.value = dataset;
+        option.textContent = dataset.split('_').map(w => 
+          w.charAt(0).toUpperCase() + w.slice(1)
+        ).join(' ');
+        datasetSelect.appendChild(option);
+      });
+      
+      // Populate events
+      updateEventList();
+      
+      // Event listeners
+      categorySelect.addEventListener('change', () => {
+        updateSubFilters();
+        updateEventList();
+      });
+      yearSelect.addEventListener('change', updateEventList);
+      datasetSelect.addEventListener('change', () => {
+        updateSubFilters();
+        updateEventList();
+      });
+      
+      // Initial sub-filters check
+      updateSubFilters();
+    }
+    
+    function updateSubFilters() {
+      const datasetValue = document.getElementById('datasetSelect').value;
+      const subFiltersDiv = document.getElementById('subFilters');
+      const subFilterControls = document.getElementById('subFilterControls');
+      
+      // Clear existing sub-filters
+      subFilterControls.innerHTML = '';
+      
+      // Check if we need sub-filters
+      if (datasetValue === 'ships') {
+        // Ships: Country and Ship Type filters
+        subFiltersDiv.style.display = 'block';
+        
+        const countries = getUniqueValues('ships', 'Country');
+        const shipTypes = getUniqueValues('ships', 'Ship_Type');
+        
+        // Country filter
+        const countryDiv = document.createElement('div');
+        countryDiv.className = 'control-group';
+        countryDiv.innerHTML = `
+          <label>Country</label>
+          <select id="subFilterCountry">
+            <option value="all">All Countries</option>
+            ${countries.map(c => `<option value="${c}">${c}</option>`).join('')}
+          </select>
+        `;
+        subFilterControls.appendChild(countryDiv);
+        
+        // Ship Type filter
+        const shipTypeDiv = document.createElement('div');
+        shipTypeDiv.className = 'control-group';
+        shipTypeDiv.innerHTML = `
+          <label>Ship Type</label>
+          <select id="subFilterShipType">
+            <option value="all">All Types</option>
+            ${shipTypes.map(t => `<option value="${t}">${t}</option>`).join('')}
+          </select>
+        `;
+        subFilterControls.appendChild(shipTypeDiv);
+        
+        // Add listeners
+        document.getElementById('subFilterCountry').addEventListener('change', updateEventList);
+        document.getElementById('subFilterShipType').addEventListener('change', updateEventList);
+        
+      } else if (datasetValue === 'arms_sales') {
+        // Arms: Value tier and Domain filters
+        subFiltersDiv.style.display = 'block';
+        
+        const valueTiers = getUniqueValues('arms_sales', 'value_tier');
+        const domains = getUniqueValues('arms_sales', 'domain');
+        
+        // Value Tier filter
+        const tierDiv = document.createElement('div');
+        tierDiv.className = 'control-group';
+        tierDiv.innerHTML = `
+          <label>Value Tier</label>
+          <select id="subFilterValueTier">
+            <option value="all">All Sizes</option>
+            ${valueTiers.map(t => `<option value="${t}">${t}</option>`).join('')}
+          </select>
+        `;
+        subFilterControls.appendChild(tierDiv);
+        
+        // Domain filter
+        const domainDiv = document.createElement('div');
+        domainDiv.className = 'control-group';
+        domainDiv.innerHTML = `
+          <label>Domain</label>
+          <select id="subFilterDomain">
+            <option value="all">All Domains</option>
+            ${domains.map(d => `<option value="${d}">${d}</option>`).join('')}
+          </select>
+        `;
+        subFilterControls.appendChild(domainDiv);
+        
+        // Add listeners
+        document.getElementById('subFilterValueTier').addEventListener('change', updateEventList);
+        document.getElementById('subFilterDomain').addEventListener('change', updateEventList);
+        
+      } else if (datasetValue === 'bills') {
+        // Bills: Milestone filter
+        subFiltersDiv.style.display = 'block';
+        
+        const milestones = getUniqueValues('bills', 'Milestone');
+        
+        const milestoneDiv = document.createElement('div');
+        milestoneDiv.className = 'control-group';
+        milestoneDiv.innerHTML = `
+          <label>Milestone</label>
+          <select id="subFilterMilestone">
+            <option value="all">All Milestones</option>
+            ${milestones.map(m => `<option value="${m}">${m}</option>`).join('')}
+          </select>
+        `;
+        subFilterControls.appendChild(milestoneDiv);
+        
+        document.getElementById('subFilterMilestone').addEventListener('change', updateEventList);
+        
+      } else if (datasetValue === 'diplomatic') {
+        // Diplomatic: US Official Level filter
+        subFiltersDiv.style.display = 'block';
+        
+        const levels = getUniqueValues('diplomatic', 'US_Official_Level');
+        
+        const levelDiv = document.createElement('div');
+        levelDiv.className = 'control-group';
+        levelDiv.innerHTML = `
+          <label>Official Level</label>
+          <select id="subFilterLevel">
+            <option value="all">All Levels</option>
+            ${levels.map(l => `<option value="${l}">${l}</option>`).join('')}
+          </select>
+        `;
+        subFilterControls.appendChild(levelDiv);
+        
+        document.getElementById('subFilterLevel').addEventListener('change', updateEventList);
+        
+      } else {
+        // No sub-filters for this dataset
+        subFiltersDiv.style.display = 'none';
+      }
+    }
+    
+    function getUniqueValues(dataset, field) {
+      if (!DataConnector.currentData || !DataConnector.currentData[dataset]) return [];
+      
+      const values = new Set();
+      DataConnector.currentData[dataset].forEach(item => {
+        if (item[field]) {
+          // Handle comma-separated values (like Country in ships)
+          const val = String(item[field]);
+          if (val.includes(',')) {
+            val.split(',').forEach(v => values.add(v.trim()));
+          } else {
+            values.add(val);
+          }
+        }
+      });
+      
+      return Array.from(values).filter(v => v && v !== 'null' && v !== 'undefined').sort();
+    }
+    
+    function updateEventList() {
+      const categoryValue = document.getElementById('categorySelect').value;
+      const yearValue = document.getElementById('yearSelect').value;
+      const datasetValue = document.getElementById('datasetSelect').value;
+      
+      // Build filter object
+      const filters = {};
+      if (categoryValue !== 'all') {
+        filters.category = categoryValue;
+      }
+      if (yearValue !== 'ALL') {
+        filters.year = yearValue;
+      }
+      if (datasetValue !== 'all') {
+        filters.dataset = datasetValue;
+      }
+      
+      // Get events with basic filters
+      let events = DataConnector.getEvents(filters);
+      
+      // Apply sub-filters
+      events = applySubFilters(events, datasetValue);
+      
+      const eventSelect = document.getElementById('eventSelect');
+      eventSelect.innerHTML = '<option value="">-- Select an event --</option>';
+      
+      // Update counter
+      const totalEvents = DataConnector.eventIndex.length;
+      document.getElementById('eventCounter').textContent = 
+        `Showing ${events.length} of ${totalEvents} events`;
+      
+      if (events.length === 0) {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = '-- No events match filters --';
+        option.disabled = true;
+        eventSelect.appendChild(option);
+        return;
+      }
+      
+      events.forEach((event, idx) => {
+        const option = document.createElement('option');
+        option.value = idx;
+        option.textContent = `${event.date} - ${event.label}`;
+        option.dataset.event = JSON.stringify(event);
+        eventSelect.appendChild(option);
+      });
+    }
+    
+    function applySubFilters(events, dataset) {
+      if (dataset === 'ships') {
+        const country = document.getElementById('subFilterCountry')?.value;
+        const shipType = document.getElementById('subFilterShipType')?.value;
+        
+        if (country && country !== 'all') {
+          events = events.filter(e => {
+            const eventCountry = e.fields.Country || '';
+            return eventCountry.includes(country);
+          });
+        }
+        
+        if (shipType && shipType !== 'all') {
+          events = events.filter(e => e.fields.Ship_Type === shipType);
+        }
+        
+      } else if (dataset === 'arms_sales') {
+        const valueTier = document.getElementById('subFilterValueTier')?.value;
+        const domain = document.getElementById('subFilterDomain')?.value;
+        
+        if (valueTier && valueTier !== 'all') {
+          events = events.filter(e => e.fields.value_tier === valueTier);
+        }
+        
+        if (domain && domain !== 'all') {
+          events = events.filter(e => e.fields.domain === domain);
+        }
+        
+      } else if (dataset === 'bills') {
+        const milestone = document.getElementById('subFilterMilestone')?.value;
+        
+        if (milestone && milestone !== 'all') {
+          events = events.filter(e => e.fields.Milestone === milestone);
+        }
+        
+      } else if (dataset === 'diplomatic') {
+        const level = document.getElementById('subFilterLevel')?.value;
+        
+        if (level && level !== 'all') {
+          events = events.filter(e => e.fields.US_Official_Level === level);
+        }
+      }
+      
+      return events;
+    }
+    
+    window.clearFilters = function() {
+      document.getElementById('categorySelect').value = 'all';
+      document.getElementById('yearSelect').value = 'ALL';
+      document.getElementById('datasetSelect').value = 'all';
+      updateEventList();
+    };
+    
+    window.showManualLoader = function() {
+      const noDataDiv = document.getElementById('noData');
+      noDataDiv.innerHTML = `
+        <h3>Manual Data Loader</h3>
+        <p>Select the visualizer.html file from your computer:</p>
+        <div style="margin: 20px 0;">
+          <input type="file" id="manualDataFile" accept=".html" style="padding: 10px; border: 2px solid #ddd; border-radius: 8px;">
+        </div>
+        <button onclick="loadManualData()" style="background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer;">
+          Load Data
+        </button>
+        <div id="loadStatus" style="margin-top: 15px; padding: 10px; border-radius: 6px; display: none;"></div>
+      `;
+    };
+    
+    window.loadManualData = async function() {
+      const fileInput = document.getElementById('manualDataFile');
+      const statusDiv = document.getElementById('loadStatus');
+      
+      if (!fileInput.files[0]) {
+        statusDiv.style.display = 'block';
+        statusDiv.style.background = '#f8d7da';
+        statusDiv.style.color = '#721c24';
+        statusDiv.textContent = 'Please select a file first';
+        return;
+      }
+      
+      try {
+        statusDiv.style.display = 'block';
+        statusDiv.style.background = '#d1ecf1';
+        statusDiv.style.color = '#0c5460';
+        statusDiv.textContent = 'Loading...';
+        
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+        
+        reader.onload = (e) => {
+          try {
+            const htmlContent = e.target.result;
+            const dataMatch = htmlContent.match(/const DATA\s*=\s*(\{[\s\S]*?\});/);
+            
+            if (!dataMatch) {
+              throw new Error('Could not find DATA in file');
+            }
+            
+            const dataStr = dataMatch[1];
+            const DATA = new Function('return ' + dataStr)();
+            
+            DataConnector.loadFromObject(DATA);
+            setupUI();
+            
+            document.getElementById('noData').style.display = 'none';
+            
+            statusDiv.style.background = '#d4edda';
+            statusDiv.style.color = '#155724';
+            statusDiv.textContent = `✓ Success! Loaded ${DataConnector.eventIndex.length} events`;
+            
+            setTimeout(() => {
+              document.getElementById('noData').style.display = 'none';
+            }, 2000);
+          } catch (error) {
+            statusDiv.style.background = '#f8d7da';
+            statusDiv.style.color = '#721c24';
+            statusDiv.textContent = `Error: ${error.message}`;
+          }
+        };
+        
+        reader.onerror = () => {
+          statusDiv.style.background = '#f8d7da';
+          statusDiv.style.color = '#721c24';
+          statusDiv.textContent = 'Error reading file';
+        };
+        
+        reader.readAsText(file);
+      } catch (error) {
+        statusDiv.style.display = 'block';
+        statusDiv.style.background = '#f8d7da';
+        statusDiv.style.color = '#721c24';
+        statusDiv.textContent = `Error: ${error.message}`;
+      }
+    };
+    
+    window.runAnalysis = function() {
+      const eventSelect = document.getElementById('eventSelect');
+      if (!eventSelect.value) {
+        alert('Please select an event');
+        return;
+      }
+      
+      try {
+        const event = JSON.parse(eventSelect.options[eventSelect.selectedIndex].dataset.event);
+        const windowSize = parseInt(document.getElementById('windowSize').value);
+        const baselineDays = parseInt(document.getElementById('baselineDays').value);
+        
+        console.log('Running analysis for event:', event);
+        console.log('Window size:', windowSize, 'Baseline days:', baselineDays);
+        
+        // Show loading
+        document.getElementById('loading').classList.add('active');
+        document.getElementById('results').style.display = 'none';
+        
+        setTimeout(() => {
+          try {
+            // Run analysis
+            console.log('Calling SingleEventAnalyzer.analyze...');
+            const analysis = SingleEventAnalyzer.analyze(event, { windowSize, baselineDays });
+            console.log('Analysis result:', analysis);
+            
+            displayResults(analysis);
+            
+            // Hide loading
+            document.getElementById('loading').classList.remove('active');
+            document.getElementById('results').style.display = 'block';
+          } catch (error) {
+            console.error('Error during analysis:', error);
+            document.getElementById('loading').classList.remove('active');
+            alert('Error during analysis: ' + error.message + '\n\nCheck console for details.');
+          }
+        }, 300);
+      } catch (error) {
+        console.error('Error setting up analysis:', error);
+        alert('Error setting up analysis: ' + error.message);
+      }
+    };
+    
+    function displayResults(analysis) {
+      try {
+        console.log('Displaying results...');
+        const summary = SingleEventAnalyzer.getSummaryCard();
+        console.log('Summary card:', summary);
+        
+        // Event info
+        document.getElementById('eventDate').textContent = summary.event.date;
+        document.getElementById('eventCategory').textContent = summary.event.category;
+        document.getElementById('eventDescription').textContent = summary.event.description;
+        
+        // Metrics
+        const metricsHTML = `
+          <div class="metric">
+            <span class="metric-label">Baseline Mean (${analysis.baseline.days} days)</span>
+            <span class="metric-value">${summary.metrics.baselineMean}</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Window Mean</span>
+            <span class="metric-value">${summary.metrics.windowMean}</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Delta</span>
+            <span class="metric-value ${parseFloat(summary.metrics.delta) > 0 ? 'positive' : 'negative'}">
+              ${summary.metrics.delta} (${summary.metrics.deltaPercent}%)
+            </span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Max Spike</span>
+            <span class="metric-value">${summary.metrics.maxSpike}</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Time to Peak</span>
+            <span class="metric-value">${summary.metrics.timeToPeak}</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Persistence (above baseline+1σ)</span>
+            <span class="metric-value">${summary.metrics.persistence}</span>
+          </div>
+        `;
+        document.getElementById('metrics').innerHTML = metricsHTML;
+        
+        // Confounders
+        const confounders = SingleEventAnalyzer.getConfounders();
+        document.getElementById('confounderCount').textContent = confounders.length;
+        
+        if (confounders.length === 0) {
+          document.getElementById('confounderList').innerHTML = '<p style="color: #999; text-align: center;">No other events in this window</p>';
+        } else {
+          const confoundersHTML = confounders.map(c => `
+            <div class="confounder-item">
+              <strong>${c.date} - ${c.category}</strong>
+              <span>${c.label}</span>
+            </div>
+          `).join('');
+          document.getElementById('confounderList').innerHTML = confoundersHTML;
+        }
+        
+        // Chart
+        console.log('Plotting chart...');
+        plotChart(analysis);
+        console.log('Display complete!');
+      } catch (error) {
+        console.error('Error displaying results:', error);
+        alert('Error displaying results: ' + error.message);
+      }
+    }
+    
+    function plotChart(analysis) {
+      const chartData = SingleEventAnalyzer.getChartData();
+      
+      const trace = {
+        x: chartData.x,
+        y: chartData.y,
+        type: 'scatter',
+        mode: 'lines+markers',
+        name: 'ADIZ Count',
+        line: { color: '#667eea', width: 3 },
+        marker: { size: 6 }
+      };
+      
+      const threshold = {
+        x: chartData.x,
+        y: Array(chartData.x.length).fill(chartData.threshold),
+        type: 'scatter',
+        mode: 'lines',
+        name: 'Baseline + 1σ',
+        line: { color: '#ff6b6b', width: 2, dash: 'dash' }
+      };
+      
+      const layout = {
+        xaxis: { title: 'Date' },
+        yaxis: { title: 'ADIZ Count' },
+        shapes: [{
+          type: 'line',
+          x0: chartData.event_date,
+          x1: chartData.event_date,
+          y0: 0,
+          y1: 1,
+          yref: 'paper',
+          line: { color: '#28a745', width: 3, dash: 'dot' }
+        }],
+        annotations: [{
+          x: chartData.event_date,
+          y: 1,
+          yref: 'paper',
+          text: 'Event',
+          showarrow: false,
+          yshift: 10
+        }],
+        hovermode: 'x unified',
+        margin: { t: 20, r: 20, b: 50, l: 50 }
+      };
+      
+      Plotly.newPlot('chart', [trace, threshold], layout, { responsive: true });
+    }
+    
+    // Initialize on load
+    init();
+  </script>
+</body>
+</html>

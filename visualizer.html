@@ -1,0 +1,1556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Taiwan ADIZ Incursions Interactive Dashboard</title>
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --primary: #ff6b35;
+      --secondary: #004e89;
+      --accent: #f77f00;
+      --bg: #fafafa;
+      --surface: #ffffff;
+      --border: #e5e7eb;
+      --text: #1a1a1a;
+      --text-muted: #6b7280;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+    
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    header {
+      text-align: center;
+      padding: 30px 20px;
+      background: linear-gradient(135deg, var(--secondary) 0%, #003d6d 100%);
+      color: white;
+      margin-bottom: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      letter-spacing: -0.02em;
+    }
+    
+    header p {
+      font-size: 0.95rem;
+      opacity: 0.9;
+    }
+    
+    /* Control Panel */
+    .controls {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    
+    .control-section {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      background: #fafbfc;
+    }
+    
+    .control-section h3 {
+      font-size: 0.875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .control-icon {
+      width: 18px;
+      height: 18px;
+      display: inline-block;
+    }
+    
+    /* Toggle Pills */
+    .toggle-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .toggle-pill {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+    
+    .toggle-pill:hover {
+      border-color: var(--primary);
+      background: #fff9f5;
+    }
+    
+    .toggle-pill input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: var(--primary);
+    }
+    
+    .toggle-pill label {
+      flex: 1;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+    
+    .color-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    
+    /* Nested filters */
+    .sub-filters {
+      margin-left: 28px;
+      margin-top: 8px;
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+    }
+    
+    .sub-filters.active {
+      display: flex;
+    }
+    
+    .sub-filter {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.85rem;
+    }
+    
+    .sub-filter input {
+      accent-color: var(--primary);
+    }
+    
+    /* Dropdowns */
+    select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    
+    select:hover {
+      border-color: var(--primary);
+    }
+    
+    select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+    }
+    
+    /* Chart Container */
+    #plotly-chart {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      min-height: 600px;
+    }
+    
+    /* Legend */
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      padding: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-top: 20px;
+      font-size: 0.85rem;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    /* Loading state */
+    .loading {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+    
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      header h1 { font-size: 1.5rem; }
+      .controls-grid { grid-template-columns: 1fr; }
+    }
+  /* ========================================================================
+   SLEEK MAKEOVER (v39)
+   - purely visual: no data/logic changes
+   ======================================================================== */
+
+:root{
+  --bg-0: #070a12;
+  --bg-1: #0b1220;
+  --bg-2: #0f1b2d;
+  --glass: rgba(255,255,255,0.72);
+  --glass-2: rgba(255,255,255,0.62);
+  --shadow-soft: 0 14px 40px rgba(0,0,0,0.10);
+  --shadow-mid: 0 10px 22px rgba(0,0,0,0.10);
+  --ring: 0 0 0 4px rgba(255, 107, 53, 0.14);
+}
+
+body{
+  background: radial-gradient(1200px 700px at 20% -10%, rgba(0,78,137,0.20) 0%, rgba(0,78,137,0) 60%),
+              radial-gradient(900px 600px at 95% 10%, rgba(247,127,0,0.18) 0%, rgba(247,127,0,0) 55%),
+              linear-gradient(180deg, #f7f8fb 0%, #f2f5fb 60%, #eef2f8 100%);
+}
+
+/* subtle grid/noise overlay */
+body::before{
+  content:"";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(17,24,39,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(17,24,39,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(circle at 50% 20%, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.55) 45%, rgba(0,0,0,0.0) 75%);
+  opacity: 0.8;
+  z-index: 0;
+}
+
+.container{ position: relative; z-index: 1; padding: 22px; }
+
+header{
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  box-shadow: var(--shadow-soft);
+}
+
+header::after{
+  content:"";
+  position:absolute;
+  inset:-2px;
+  background: radial-gradient(900px 420px at 15% 15%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0) 60%),
+              radial-gradient(700px 360px at 85% 30%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 60%);
+  pointer-events:none;
+  mix-blend-mode: screen;
+}
+
+header h1{
+  font-size: clamp(1.6rem, 2.2vw, 2.4rem);
+  letter-spacing: -0.03em;
+}
+
+header p{
+  max-width: 980px;
+  margin: 0 auto;
+  opacity: 0.92;
+}
+
+.controls{
+  border-radius: 18px;
+  box-shadow: var(--shadow-mid);
+  background: rgba(255,255,255,0.70);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.control-section{
+  background: linear-gradient(180deg, rgba(255,255,255,0.86) 0%, rgba(255,255,255,0.70) 100%);
+  border-radius: 14px;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.9) inset;
+}
+
+.control-section h3{
+  color: rgba(17,24,39,0.72);
+  letter-spacing: 0.08em;
+}
+
+.toggle-pill{
+  border-radius: 12px;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.9) inset;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.toggle-pill:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(17,24,39,0.08);
+}
+
+.toggle-pill:has(input:focus-visible){
+  box-shadow: var(--ring);
+  border-color: var(--primary);
+}
+
+select{
+  border-radius: 12px;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.9) inset;
+}
+
+#plotly-chart{
+  border-radius: 18px;
+  box-shadow: var(--shadow-mid);
+  padding: 18px;
+}
+
+/* nicer scrollbars (webkit) */
+::-webkit-scrollbar{ height: 10px; width: 10px; }
+::-webkit-scrollbar-thumb{ background: rgba(17,24,39,0.18); border-radius: 999px; border: 2px solid rgba(255,255,255,0.55); }
+::-webkit-scrollbar-track{ background: rgba(255,255,255,0.35); }
+
+/* make sub-filter note text breathe */
+.sub-filter small{ font-size: 0.78rem; line-height: 1.3; }
+
+
+
+/* Collapsible control sections */
+.section-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom: 10px;
+}
+
+.section-header h3{
+  margin: 0;
+}
+
+.collapse-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(17,24,39,0.14);
+  background: rgba(255,255,255,0.65);
+  color: rgba(17,24,39,0.75);
+  cursor:pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+  user-select:none;
+}
+
+.collapse-btn:hover{
+  transform: translateY(-1px);
+  border-color: rgba(255,107,53,0.55);
+  box-shadow: 0 10px 20px rgba(17,24,39,0.08);
+  background: rgba(255,255,255,0.82);
+}
+
+.collapse-btn:focus-visible{
+  outline:none;
+  box-shadow: var(--ring);
+  border-color: rgba(255,107,53,0.75);
+}
+
+.collapse-btn .chev{
+  display:inline-block;
+  transition: transform 0.18s ease;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.control-section.collapsed .sub-filters{
+  display:none !important;
+}
+
+.control-section.collapsed{
+  padding-bottom: 10px;
+}
+
+.control-section.collapsed .collapse-btn .chev{
+  transform: rotate(-90deg);
+}
+
+/* When a section is expanded, give it a touch more depth */
+.control-section:not(.collapsed){
+  box-shadow: 0 16px 40px rgba(17,24,39,0.08);
+  border-color: rgba(17,24,39,0.10);
+}
+
+</style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🛩️ Taiwan ADIZ Incursions Analysis</h1>
+      <p>Interactive visualization of Chinese military aircraft incursions and geopolitical triggers (2020-2025)</p>
+    </header>
+    
+    
+    <div class="controls">
+      <div class="controls-grid">
+
+        <!-- Baseline Control -->
+        <div class="control-section collapsed" data-section="baseline">
+          <div class="section-header">
+            <h3><span class="control-icon">📊</span>Baseline Data</h3>
+            <button type="button" class="collapse-btn" aria-expanded="false" aria-label="Expand Baseline options">
+              <span class="chev" aria-hidden="true">▾</span><span class="btn-text">Options</span>
+            </button>
+          </div>
+          <div class="control-body">
+            <div class="toggle-group">
+              <div class="toggle-pill">
+                <input type="checkbox" id="toggle-baseline" checked>
+                <label for="toggle-baseline">ADIZ Incursion Count</label>
+                <span class="color-indicator" style="background: #ff6b35;"></span>
+              </div>
+              <div class="toggle-pill">
+                <input type="checkbox" id="toggle-smooth" checked>
+                <label for="toggle-smooth">7-Day Moving Average</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Time Window -->
+        <div class="control-section collapsed" data-section="time">
+          <div class="section-header">
+            <h3><span class="control-icon">📅</span>Time Period</h3>
+            <button type="button" class="collapse-btn" aria-expanded="false" aria-label="Expand Time Period options">
+              <span class="chev" aria-hidden="true">▾</span><span class="btn-text">Options</span>
+            </button>
+          </div>
+          <div class="control-body">
+            <select id="time-window">
+              <option value="ALL">All Dates (2020-2025)</option>
+              <option value="2020">2020</option>
+              <option value="2021">2021</option>
+              <option value="2022">2022</option>
+              <option value="2023">2023</option>
+              <option value="2024">2024</option>
+              <option value="2025">2025</option>
+              <option value="TRUMP1">Trump I (2017-2021)</option>
+              <option value="BIDEN">Biden (2021-2025)</option>
+              <option value="TRUMP2">Trump II (2025+)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Arms Sales -->
+        <div class="control-section collapsed" data-section="arms">
+          <div class="section-header">
+            <h3><span class="control-icon">⚔️</span>Arms Sales</h3>
+            <button type="button" class="collapse-btn" aria-expanded="false" aria-label="Expand Arms Sales options">
+              <span class="chev" aria-hidden="true">▾</span><span class="btn-text">Options</span>
+            </button>
+          </div>
+          <div class="control-body">
+            <div class="toggle-group">
+              <div class="toggle-pill">
+                <input type="checkbox" id="toggle-arms" class="parent-toggle">
+                <label for="toggle-arms">Show Arms Sales</label>
+                <span class="color-indicator" style="background: #dc2626;"></span>
+              </div>
+            </div>
+
+            <div class="sub-filters" id="arms-filters">
+              <div class="sub-filter" style="border:none;background:transparent;padding:0;">
+                <small style="color: var(--text-muted); display:block; margin: 2px 0 8px 2px;">
+                  Filter arms sales by any dataset column (auto-generated from your CSV).
+                </small>
+              </div>
+              <div id="arms-dynamic-filters"></div>
+              <div class="sub-filter" style="margin-top:6px;">
+                <input type="checkbox" id="arms-defensive" checked>
+                <label for="arms-defensive">Defensive Systems</label>
+              </div>
+              <div class="sub-filter">
+                <input type="checkbox" id="arms-enabling" checked>
+                <label for="arms-enabling">Enabling/Support</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Diplomatic -->
+        <div class="control-section collapsed" data-section="diplomatic">
+          <div class="section-header">
+            <h3><span class="control-icon">🤝</span>Diplomatic Meetings</h3>
+            <button type="button" class="collapse-btn" aria-expanded="false" aria-label="Expand Diplomatic Meetings options">
+              <span class="chev" aria-hidden="true">▾</span><span class="btn-text">Options</span>
+            </button>
+          </div>
+          <div class="control-body">
+            <div class="toggle-group">
+              <div class="toggle-pill">
+                <input type="checkbox" id="toggle-diplomatic" class="parent-toggle">
+                <label for="toggle-diplomatic">Show Meetings</label>
+                <span class="color-indicator" style="background: #2563eb;"></span>
+              </div>
+            </div>
+
+            <div class="sub-filters" id="diplomatic-filters">
+              <div class="sub-filter">
+                <input type="checkbox" id="dip-loc-usa" checked>
+                <label for="dip-loc-usa">Meeting in USA</label>
+              </div>
+              <div class="sub-filter">
+                <input type="checkbox" id="dip-loc-taiwan" checked>
+                <label for="dip-loc-taiwan">Meeting in Taiwan</label>
+              </div>
+
+              <div class="sub-filter" style="border:none;background:transparent;padding:0;margin-top:6px;">
+                <small style="color: var(--text-muted); display:block; margin: 2px 0 6px 2px;">
+                  US official level
+                </small>
+              </div>
+              <div class="sub-filter">
+                <input type="checkbox" id="dip-high" checked>
+                <label for="dip-high">High</label>
+              </div>
+              <div class="sub-filter">
+                <input type="checkbox" id="dip-medium" checked>
+                <label for="dip-medium">Medium</label>
+              </div>
+              <div class="sub-filter">
+                <input type="checkbox" id="dip-low" checked>
+                <label for="dip-low">Low</label>
+              </div>
+              <div class="sub-filter">
+                <input type="checkbox" id="dip-former" checked>
+                <label for="dip-former">Former</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bills -->
+        <div class="control-section collapsed" data-section="bills">
+          <div class="section-header">
+            <h3><span class="control-icon">📜</span>Legislative Bills</h3>
+            <button type="button" class="collapse-btn" aria-expanded="false" aria-label="Expand Legislative Bills options">
+              <span class="chev" aria-hidden="true">▾</span><span class="btn-text">Options</span>
+            </button>
+          </div>
+          <div class="control-body">
+            <div class="toggle-group">
+              <div class="toggle-pill">
+                <input type="checkbox" id="toggle-bills" class="parent-toggle">
+                <label for="toggle-bills">Show Bills</label>
+                <span class="color-indicator" style="background: #7c3aed;"></span>
+              </div>
+            </div>
+
+            <div class="sub-filters" id="bills-filters">
+              <div class="sub-filter">
+                <input type="checkbox" id="bill-introduced" checked>
+                <label for="bill-introduced">Introduced</label>
+              </div>
+              <div class="sub-filter">
+                <input type="checkbox" id="bill-passed" checked>
+                <label for="bill-passed">Passed</label>
+              </div>
+              <div class="sub-filter">
+                <input type="checkbox" id="bill-law" checked>
+                <label for="bill-law">Became Law</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ships -->
+        <div class="control-section collapsed" data-section="ships">
+          <div class="section-header">
+            <h3><span class="control-icon">⚓</span>Ship Transits</h3>
+            <button type="button" class="collapse-btn" aria-expanded="false" aria-label="Expand Ship Transits options">
+              <span class="chev" aria-hidden="true">▾</span><span class="btn-text">Options</span>
+            </button>
+          </div>
+          <div class="control-body">
+            <div class="toggle-group">
+              <div class="toggle-pill">
+                <input type="checkbox" id="toggle-ships" class="parent-toggle">
+                <label for="toggle-ships">Show Transits</label>
+                <span class="color-indicator" style="background: #0891b2;"></span>
+              </div>
+            </div>
+
+            <div class="sub-filters" id="ships-filters">
+              <div class="sub-filter" style="border:none;background:transparent;padding:0;">
+                <small style="color: var(--text-muted); display:block; margin: 2px 0 8px 2px;">
+                  Filter transits by country and ship type.
+                </small>
+              </div>
+              <div id="ships-dynamic-filters"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Political/Symbolic -->
+        <div class="control-section collapsed" data-section="political">
+          <div class="section-header">
+            <h3><span class="control-icon">🗓️</span>Political Events</h3>
+            <button type="button" class="collapse-btn" aria-expanded="false" aria-label="Expand Political Events options">
+              <span class="chev" aria-hidden="true">▾</span><span class="btn-text">Options</span>
+            </button>
+          </div>
+          <div class="control-body">
+            <div class="toggle-group">
+              <div class="toggle-pill">
+                <input type="checkbox" id="toggle-political" class="parent-toggle">
+                <label for="toggle-political">Show Events</label>
+                <span class="color-indicator" style="background: #ea580c;"></span>
+              </div>
+            </div>
+
+            <div class="sub-filters" id="political-filters">
+              <div class="sub-filter" style="border:none;background:transparent;padding:0;">
+                <small style="color: var(--text-muted); display:block; margin: 2px 0 8px 2px;">
+                  Filter by actor and event type. Bands are color-coded: China (red), Taiwan (blue), China/Taiwan (purple).
+                </small>
+              </div>
+
+              <div class="sub-filter">
+                <input type="checkbox" id="pol-actor-china" checked>
+                <label for="pol-actor-china">China</label>
+              </div>
+              <div class="sub-filter">
+                <input type="checkbox" id="pol-actor-taiwan" checked>
+                <label for="pol-actor-taiwan">Taiwan</label>
+              </div>
+              <div class="sub-filter">
+                <input type="checkbox" id="pol-actor-both" checked>
+                <label for="pol-actor-both">China/Taiwan</label>
+              </div>
+
+              <div class="sub-filter" style="border:none;background:transparent;padding:0;margin-top:6px;">
+                <small style="color: var(--text-muted); display:block; margin: 2px 0 6px 2px;">
+                  Event type
+                </small>
+              </div>
+              <div class="sub-filter">
+                <input type="checkbox" id="pol-type-political" checked>
+                <label for="pol-type-political">Political</label>
+              </div>
+              <div class="sub-filter">
+                <input type="checkbox" id="pol-type-symbolic" checked>
+                <label for="pol-type-symbolic">Symbolic Holidays</label>
+              </div>
+              <div class="sub-filter">
+                <input type="checkbox" id="pol-type-military" checked>
+                <label for="pol-type-military">Military Exercises</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+</div>
+    
+    <div id="plotly-chart">
+      <div class="loading">
+        <div class="loading-spinner"></div>
+        <p>Loading visualization...</p>
+      </div>
+    </div>
+    
+  </div>
+  
+  <script>
+// ============================================================================
+// DATA MODULE - All data embedded here for self-contained distribution
+// ============================================================================
+const DATA = {"adiz_baseline":[{"Date":"2020-09-09","ADIZ_count":"10"},{"Date":"2020-09-10","ADIZ_count":"11"},{"Date":"2020-09-11","ADIZ_count":"0"},{"Date":"2020-09-12","ADIZ_count":"0"},{"Date":"2020-09-13","ADIZ_count":"0"},{"Date":"2020-09-14","ADIZ_count":"0"},{"Date":"2020-09-15","ADIZ_count":"0"},{"Date":"2020-09-16","ADIZ_count":"2"},{"Date":"2020-09-17","ADIZ_count":"0"},{"Date":"2020-09-18","ADIZ_count":"18"},{"Date":"2020-09-19","ADIZ_count":"19"},{"Date":"2020-09-20","ADIZ_count":"0"},{"Date":"2020-09-21","ADIZ_count":"2"},{"Date":"2020-09-22","ADIZ_count":"2"},{"Date":"2020-09-23","ADIZ_count":"2"},{"Date":"2020-09-24","ADIZ_count":"1"},{"Date":"2020-09-25","ADIZ_count":"0"},{"Date":"2020-09-26","ADIZ_count":"0"},{"Date":"2020-09-27","ADIZ_count":"0"},{"Date":"2020-09-28","ADIZ_count":"0"},{"Date":"2020-09-29","ADIZ_count":"2"},{"Date":"2020-09-30","ADIZ_count":"0"},{"Date":"2020-10-01","ADIZ_count":"1"},{"Date":"2020-10-02","ADIZ_count":"0"},{"Date":"2020-10-03","ADIZ_count":"1"},{"Date":"2020-10-04","ADIZ_count":"1"},{"Date":"2020-10-05","ADIZ_count":"0"},{"Date":"2020-10-06","ADIZ_count":"1"},{"Date":"2020-10-07","ADIZ_count":"1"},{"Date":"2020-10-08","ADIZ_count":"1"},{"Date":"2020-10-09","ADIZ_count":"2"},{"Date":"2020-10-10","ADIZ_count":"1"},{"Date":"2020-10-11","ADIZ_count":"1"},{"Date":"2020-10-12","ADIZ_count":"0"},{"Date":"2020-10-13","ADIZ_count":"0"},{"Date":"2020-10-14","ADIZ_count":"0"},{"Date":"2020-10-15","ADIZ_count":"1"},{"Date":"2020-10-16","ADIZ_count":"1"},{"Date":"2020-10-17","ADIZ_count":"1"},{"Date":"2020-10-18","ADIZ_count":"0"},{"Date":"2020-10-19","ADIZ_count":"0"},{"Date":"2020-10-20","ADIZ_count":"3"},{"Date":"2020-10-21","ADIZ_count":"1"},{"Date":"2020-10-22","ADIZ_count":"0"},{"Date":"2020-10-23","ADIZ_count":"0"},{"Date":"2020-10-24","ADIZ_count":"0"},{"Date":"2020-10-25","ADIZ_count":"1"},{"Date":"2020-10-26","ADIZ_count":"2"},{"Date":"2020-10-27","ADIZ_count":"1"},{"Date":"2020-10-28","ADIZ_count":"2"},{"Date":"2020-10-29","ADIZ_count":"1"},{"Date":"2020-10-30","ADIZ_count":"3"},{"Date":"2020-10-31","ADIZ_count":"1"},{"Date":"2020-11-01","ADIZ_count":"1"},{"Date":"2020-11-02","ADIZ_count":"8"},{"Date":"2020-11-03","ADIZ_count":"1"},{"Date":"2020-11-04","ADIZ_count":"1"},{"Date":"2020-11-05","ADIZ_count":"3"},{"Date":"2020-11-06","ADIZ_count":"1"},{"Date":"2020-11-07","ADIZ_count":"0"},{"Date":"2020-11-08","ADIZ_count":"0"},{"Date":"2020-11-09","ADIZ_count":"0"},{"Date":"2020-11-10","ADIZ_count":"1"},{"Date":"2020-11-11","ADIZ_count":"2"},{"Date":"2020-11-12","ADIZ_count":"1"},{"Date":"2020-11-13","ADIZ_count":"0"},{"Date":"2020-11-14","ADIZ_count":"1"},{"Date":"2020-11-15","ADIZ_count":"2"},{"Date":"2020-11-16","ADIZ_count":"2"},{"Date":"2020-11-17","ADIZ_count":"2"},{"Date":"2020-11-18","ADIZ_count":"3"},{"Date":"2020-11-19","ADIZ_count":"0"},{"Date":"2020-11-20","ADIZ_count":"0"},{"Date":"2020-11-21","ADIZ_count":"2"},{"Date":"2020-11-22","ADIZ_count":"1"},{"Date":"2020-11-23","ADIZ_count":"1"},{"Date":"2020-11-24","ADIZ_count":"2"},{"Date":"2020-11-25","ADIZ_count":"1"},{"Date":"2020-11-26","ADIZ_count":"0"},{"Date":"2020-11-27","ADIZ_count":"0"},{"Date":"2020-11-28","ADIZ_count":"2"},{"Date":"2020-11-29","ADIZ_count":"1"},{"Date":"2020-11-30","ADIZ_count":"2"},{"Date":"2020-12-01","ADIZ_count":"1"},{"Date":"2020-12-02","ADIZ_count":"1"},{"Date":"2020-12-03","ADIZ_count":"0"},{"Date":"2020-12-04","ADIZ_count":"3"},{"Date":"2020-12-05","ADIZ_count":"2"},{"Date":"2020-12-06","ADIZ_count":"1"},{"Date":"2020-12-07","ADIZ_count":"1"},{"Date":"2020-12-08","ADIZ_count":"0"},{"Date":"2020-12-09","ADIZ_count":"2"},{"Date":"2020-12-10","ADIZ_count":"1"},{"Date":"2020-12-11","ADIZ_count":"0"},{"Date":"2020-12-12","ADIZ_count":"1"},{"Date":"2020-12-13","ADIZ_count":"0"},{"Date":"2020-12-14","ADIZ_count":"0"},{"Date":"2020-12-15","ADIZ_count":"2"},{"Date":"2020-12-16","ADIZ_count":"4"},{"Date":"2020-12-17","ADIZ_count":"0"},{"Date":"2020-12-18","ADIZ_count":"0"},{"Date":"2020-12-19","ADIZ_count":"0"},{"Date":"2020-12-20","ADIZ_count":"2"},{"Date":"2020-12-21","ADIZ_count":"2"},{"Date":"2020-12-22","ADIZ_count":"2"},{"Date":"2020-12-23","ADIZ_count":"0"},{"Date":"2020-12-24","ADIZ_count":"2"},{"Date":"2020-12-25","ADIZ_count":"2"},{"Date":"2020-12-26","ADIZ_count":"1"},{"Date":"2020-12-27","ADIZ_count":"0"},{"Date":"2020-12-28","ADIZ_count":"1"},{"Date":"2020-12-29","ADIZ_count":"1"},{"Date":"2020-12-30","ADIZ_count":"0"},{"Date":"2020-12-31","ADIZ_count":"0"},{"Date":"2021-01-01","ADIZ_count":"0"},{"Date":"2021-01-02","ADIZ_count":"1"},{"Date":"2021-01-03","ADIZ_count":"1"},{"Date":"2021-01-04","ADIZ_count":"4"},{"Date":"2021-01-05","ADIZ_count":"1"},{"Date":"2021-01-06","ADIZ_count":"2"},{"Date":"2021-01-07","ADIZ_count":"1"},{"Date":"2021-01-08","ADIZ_count":"0"},{"Date":"2021-01-09","ADIZ_count":"1"},{"Date":"2021-01-10","ADIZ_count":"0"},{"Date":"2021-01-11","ADIZ_count":"1"},{"Date":"2021-01-12","ADIZ_count":"3"},{"Date":"2021-01-13","ADIZ_count":"1"},{"Date":"2021-01-14","ADIZ_count":"2"},{"Date":"2021-01-15","ADIZ_count":"1"},{"Date":"2021-01-16","ADIZ_count":"1"},{"Date":"2021-01-17","ADIZ_count":"1"},{"Date":"2021-01-18","ADIZ_count":"3"},{"Date":"2021-01-19","ADIZ_count":"2"},{"Date":"2021-01-20","ADIZ_count":"1"},{"Date":"2021-01-21","ADIZ_count":"0"},{"Date":"2021-01-22","ADIZ_count":"1"},{"Date":"2021-01-23","ADIZ_count":"13"},{"Date":"2021-01-24","ADIZ_count":"15"},{"Date":"2021-01-25","ADIZ_count":"1"},{"Date":"2021-01-26","ADIZ_count":"4"},{"Date":"2021-01-27","ADIZ_count":"4"},{"Date":"2021-01-28","ADIZ_count":"6"},{"Date":"2021-01-29","ADIZ_count":"2"},{"Date":"2021-01-30","ADIZ_count":"1"},{"Date":"2021-01-31","ADIZ_count":"7"},{"Date":"2021-02-01","ADIZ_count":"1"},{"Date":"2021-02-02","ADIZ_count":"1"},{"Date":"2021-02-03","ADIZ_count":"0"},{"Date":"2021-02-04","ADIZ_count":"2"},{"Date":"2021-02-05","ADIZ_count":"1"},{"Date":"2021-02-06","ADIZ_count":"1"},{"Date":"2021-02-07","ADIZ_count":"2"},{"Date":"2021-02-08","ADIZ_count":"2"},{"Date":"2021-02-09","ADIZ_count":"0"},{"Date":"2021-02-10","ADIZ_count":"0"},{"Date":"2021-02-11","ADIZ_count":"0"},{"Date":"2021-02-12","ADIZ_count":"0"},{"Date":"2021-02-13","ADIZ_count":"2"},{"Date":"2021-02-14","ADIZ_count":"0"},{"Date":"2021-02-15","ADIZ_count":"1"},{"Date":"2021-02-16","ADIZ_count":"1"},{"Date":"2021-02-17","ADIZ_count":"2"},{"Date":"2021-02-18","ADIZ_count":"1"},{"Date":"2021-02-19","ADIZ_count":"9"},{"Date":"2021-02-20","ADIZ_count":"11"},{"Date":"2021-02-21","ADIZ_count":"0"},{"Date":"2021-02-22","ADIZ_count":"1"},{"Date":"2021-02-23","ADIZ_count":"1"},{"Date":"2021-02-24","ADIZ_count":"0"},{"Date":"2021-02-25","ADIZ_count":"0"},{"Date":"2021-02-26","ADIZ_count":"0"},{"Date":"2021-02-27","ADIZ_count":"0"},{"Date":"2021-02-28","ADIZ_count":"1"},{"Date":"2021-03-01","ADIZ_count":"1"},{"Date":"2021-03-02","ADIZ_count":"1"},{"Date":"2021-03-03","ADIZ_count":"2"},{"Date":"2021-03-04","ADIZ_count":"0"},{"Date":"2021-03-05","ADIZ_count":"0"},{"Date":"2021-03-06","ADIZ_count":"0"},{"Date":"2021-03-07","ADIZ_count":"0"},{"Date":"2021-03-08","ADIZ_count":"2"},{"Date":"2021-03-09","ADIZ_count":"0"},{"Date":"2021-03-10","ADIZ_count":"1"},{"Date":"2021-03-11","ADIZ_count":"1"},{"Date":"2021-03-12","ADIZ_count":"1"},{"Date":"2021-03-13","ADIZ_count":"0"},{"Date":"2021-03-14","ADIZ_count":"1"},{"Date":"2021-03-15","ADIZ_count":"2"},{"Date":"2021-03-16","ADIZ_count":"0"},{"Date":"2021-03-17","ADIZ_count":"1"},{"Date":"2021-03-18","ADIZ_count":"0"},{"Date":"2021-03-19","ADIZ_count":"0"},{"Date":"2021-03-20","ADIZ_count":"1"},{"Date":"2021-03-21","ADIZ_count":"0"},{"Date":"2021-03-22","ADIZ_count":"2"},{"Date":"2021-03-23","ADIZ_count":"0"},{"Date":"2021-03-24","ADIZ_count":"3"},{"Date":"2021-03-25","ADIZ_count":"3"},{"Date":"2021-03-26","ADIZ_count":"20"},{"Date":"2021-03-27","ADIZ_count":"1"},{"Date":"2021-03-28","ADIZ_count":"0"},{"Date":"2021-03-29","ADIZ_count":"10"},{"Date":"2021-03-30","ADIZ_count":"1"},{"Date":"2021-03-31","ADIZ_count":"0"},{"Date":"2021-04-01","ADIZ_count":"0"},{"Date":"2021-04-02","ADIZ_count":"0"},{"Date":"2021-04-03","ADIZ_count":"1"},{"Date":"2021-04-04","ADIZ_count":"1"},{"Date":"2021-04-05","ADIZ_count":"10"},{"Date":"2021-04-06","ADIZ_count":"4"},{"Date":"2021-04-07","ADIZ_count":"15"},{"Date":"2021-04-08","ADIZ_count":"2"},{"Date":"2021-04-09","ADIZ_count":"11"},{"Date":"2021-04-10","ADIZ_count":"4"},{"Date":"2021-04-11","ADIZ_count":"1"},{"Date":"2021-04-12","ADIZ_count":"25"},{"Date":"2021-04-13","ADIZ_count":"5"},{"Date":"2021-04-14","ADIZ_count":"0"},{"Date":"2021-04-15","ADIZ_count":"2"},{"Date":"2021-04-16","ADIZ_count":"1"},{"Date":"2021-04-17","ADIZ_count":"1"},{"Date":"2021-04-18","ADIZ_count":"3"},{"Date":"2021-04-19","ADIZ_count":"1"},{"Date":"2021-04-20","ADIZ_count":"9"},{"Date":"2021-04-21","ADIZ_count":"2"},{"Date":"2021-04-22","ADIZ_count":"0"},{"Date":"2021-04-23","ADIZ_count":"0"},{"Date":"2021-04-24","ADIZ_count":"1"},{"Date":"2021-04-25","ADIZ_count":"1"},{"Date":"2021-04-26","ADIZ_count":"2"},{"Date":"2021-04-27","ADIZ_count":"0"},{"Date":"2021-04-28","ADIZ_count":"0"},{"Date":"2021-04-29","ADIZ_count":"0"},{"Date":"2021-04-30","ADIZ_count":"5"},{"Date":"2021-05-01","ADIZ_count":"0"},{"Date":"2021-05-02","ADIZ_count":"2"},{"Date":"2021-05-03","ADIZ_count":"0"},{"Date":"2021-05-04","ADIZ_count":"1"},{"Date":"2021-05-05","ADIZ_count":"0"},{"Date":"2021-05-06","ADIZ_count":"1"},{"Date":"2021-05-07","ADIZ_count":"2"},{"Date":"2021-05-08","ADIZ_count":"2"},{"Date":"2021-05-09","ADIZ_count":"0"},{"Date":"2021-05-10","ADIZ_count":"0"},{"Date":"2021-05-11","ADIZ_count":"1"},{"Date":"2021-05-12","ADIZ_count":"1"},{"Date":"2021-05-13","ADIZ_count":"0"},{"Date":"2021-05-14","ADIZ_count":"2"},{"Date":"2021-05-15","ADIZ_count":"1"},{"Date":"2021-05-16","ADIZ_count":"0"},{"Date":"2021-05-17","ADIZ_count":"1"},{"Date":"2021-05-18","ADIZ_count":"0"},{"Date":"2021-05-19","ADIZ_count":"1"},{"Date":"2021-05-20","ADIZ_count":"4"},{"Date":"2021-05-21","ADIZ_count":"4"},{"Date":"2021-05-22","ADIZ_count":"1"},{"Date":"2021-05-23","ADIZ_count":"2"},{"Date":"2021-05-24","ADIZ_count":"1"},{"Date":"2021-05-25","ADIZ_count":"0"},{"Date":"2021-05-26","ADIZ_count":"1"},{"Date":"2021-05-27","ADIZ_count":"0"},{"Date":"2021-05-28","ADIZ_count":"1"},{"Date":"2021-05-29","ADIZ_count":"0"},{"Date":"2021-05-30","ADIZ_count":"0"},{"Date":"2021-05-31","ADIZ_count":"0"},{"Date":"2021-06-01","ADIZ_count":"0"},{"Date":"2021-06-02","ADIZ_count":"0"},{"Date":"2021-06-03","ADIZ_count":"1"},{"Date":"2021-06-04","ADIZ_count":"1"},{"Date":"2021-06-05","ADIZ_count":"0"},{"Date":"2021-06-06","ADIZ_count":"0"},{"Date":"2021-06-07","ADIZ_count":"0"},{"Date":"2021-06-08","ADIZ_count":"0"},{"Date":"2021-06-09","ADIZ_count":"0"},{"Date":"2021-06-10","ADIZ_count":"0"},{"Date":"2021-06-11","ADIZ_count":"0"},{"Date":"2021-06-12","ADIZ_count":"0"},{"Date":"2021-06-13","ADIZ_count":"0"},{"Date":"2021-06-14","ADIZ_count":"1"},{"Date":"2021-06-15","ADIZ_count":"28"},{"Date":"2021-06-16","ADIZ_count":"1"},{"Date":"2021-06-17","ADIZ_count":"7"},{"Date":"2021-06-18","ADIZ_count":"1"},{"Date":"2021-06-19","ADIZ_count":"1"},{"Date":"2021-06-20","ADIZ_count":"1"},{"Date":"2021-06-21","ADIZ_count":"0"},{"Date":"2021-06-22","ADIZ_count":"0"},{"Date":"2021-06-23","ADIZ_count":"0"},{"Date":"2021-06-24","ADIZ_count":"0"},{"Date":"2021-06-25","ADIZ_count":"0"},{"Date":"2021-06-26","ADIZ_count":"1"},{"Date":"2021-06-27","ADIZ_count":"0"},{"Date":"2021-06-28","ADIZ_count":"0"},{"Date":"2021-06-29","ADIZ_count":"0"},{"Date":"2021-06-30","ADIZ_count":"0"},{"Date":"2021-07-01","ADIZ_count":"0"},{"Date":"2021-07-02","ADIZ_count":"2"},{"Date":"2021-07-03","ADIZ_count":"1"},{"Date":"2021-07-04","ADIZ_count":"1"},{"Date":"2021-07-05","ADIZ_count":"0"},{"Date":"2021-07-06","ADIZ_count":"0"},{"Date":"2021-07-07","ADIZ_count":"1"},{"Date":"2021-07-08","ADIZ_count":"1"},{"Date":"2021-07-09","ADIZ_count":"0"},{"Date":"2021-07-10","ADIZ_count":"0"},{"Date":"2021-07-11","ADIZ_count":"0"},{"Date":"2021-07-12","ADIZ_count":"2"},{"Date":"2021-07-13","ADIZ_count":"2"},{"Date":"2021-07-14","ADIZ_count":"1"},{"Date":"2021-07-15","ADIZ_count":"1"},{"Date":"2021-07-16","ADIZ_count":"0"},{"Date":"2021-07-17","ADIZ_count":"0"},{"Date":"2021-07-18","ADIZ_count":"0"},{"Date":"2021-07-19","ADIZ_count":"0"},{"Date":"2021-07-20","ADIZ_count":"0"},{"Date":"2021-07-21","ADIZ_count":"1"},{"Date":"2021-07-22","ADIZ_count":"1"},{"Date":"2021-07-23","ADIZ_count":"0"},{"Date":"2021-07-24","ADIZ_count":"0"},{"Date":"2021-07-25","ADIZ_count":"1"},{"Date":"2021-07-26","ADIZ_count":"0"},{"Date":"2021-07-27","ADIZ_count":"1"},{"Date":"2021-07-28","ADIZ_count":"1"},{"Date":"2021-07-29","ADIZ_count":"0"},{"Date":"2021-07-30","ADIZ_count":"0"},{"Date":"2021-07-31","ADIZ_count":"0"},{"Date":"2021-08-01","ADIZ_count":"0"},{"Date":"2021-08-02","ADIZ_count":"0"},{"Date":"2021-08-03","ADIZ_count":"0"},{"Date":"2021-08-04","ADIZ_count":"0"},{"Date":"2021-08-05","ADIZ_count":"0"},{"Date":"2021-08-06","ADIZ_count":"0"},{"Date":"2021-08-07","ADIZ_count":"0"},{"Date":"2021-08-08","ADIZ_count":"1"},{"Date":"2021-08-09","ADIZ_count":"0"},{"Date":"2021-08-10","ADIZ_count":"0"},{"Date":"2021-08-11","ADIZ_count":"1"},{"Date":"2021-08-12","ADIZ_count":"7"},{"Date":"2021-08-13","ADIZ_count":"0"},{"Date":"2021-08-14","ADIZ_count":"0"},{"Date":"2021-08-15","ADIZ_count":"1"},{"Date":"2021-08-16","ADIZ_count":"1"},{"Date":"2021-08-17","ADIZ_count":"11"},{"Date":"2021-08-18","ADIZ_count":"0"},{"Date":"2021-08-19","ADIZ_count":"1"},{"Date":"2021-08-20","ADIZ_count":"0"},{"Date":"2021-08-21","ADIZ_count":"0"},{"Date":"2021-08-22","ADIZ_count":"1"},{"Date":"2021-08-23","ADIZ_count":"2"},{"Date":"2021-08-24","ADIZ_count":"0"},{"Date":"2021-08-25","ADIZ_count":"1"},{"Date":"2021-08-26","ADIZ_count":"2"},{"Date":"2021-08-27","ADIZ_count":"3"},{"Date":"2021-08-28","ADIZ_count":"0"},{"Date":"2021-08-29","ADIZ_count":"1"},{"Date":"2021-08-30","ADIZ_count":"1"},{"Date":"2021-08-31","ADIZ_count":"0"},{"Date":"2021-09-01","ADIZ_count":"1"},{"Date":"2021-09-02","ADIZ_count":"0"},{"Date":"2021-09-03","ADIZ_count":"4"},{"Date":"2021-09-04","ADIZ_count":"4"},{"Date":"2021-09-05","ADIZ_count":"19"},{"Date":"2021-09-06","ADIZ_count":"4"},{"Date":"2021-09-07","ADIZ_count":"1"},{"Date":"2021-09-08","ADIZ_count":"4"},{"Date":"2021-09-09","ADIZ_count":"1"},{"Date":"2021-09-10","ADIZ_count":"1"},{"Date":"2021-09-11","ADIZ_count":"1"},{"Date":"2021-09-12","ADIZ_count":"1"},{"Date":"2021-09-13","ADIZ_count":"1"},{"Date":"2021-09-14","ADIZ_count":"2"},{"Date":"2021-09-15","ADIZ_count":"9"},{"Date":"2021-09-16","ADIZ_count":"3"},{"Date":"2021-09-17","ADIZ_count":"10"},{"Date":"2021-09-18","ADIZ_count":"0"},{"Date":"2021-09-19","ADIZ_count":"4"},{"Date":"2021-09-20","ADIZ_count":"1"},{"Date":"2021-09-21","ADIZ_count":"0"},{"Date":"2021-09-22","ADIZ_count":"2"},{"Date":"2021-09-23","ADIZ_count":"24"},{"Date":"2021-09-24","ADIZ_count":"3"},{"Date":"2021-09-25","ADIZ_count":"1"},{"Date":"2021-09-26","ADIZ_count":"2"},{"Date":"2021-09-27","ADIZ_count":"6"},{"Date":"2021-09-28","ADIZ_count":"2"},{"Date":"2021-09-29","ADIZ_count":"5"},{"Date":"2021-09-30","ADIZ_count":"1"},{"Date":"2021-10-01","ADIZ_count":"38"},{"Date":"2021-10-02","ADIZ_count":"39"},{"Date":"2021-10-03","ADIZ_count":"16"},{"Date":"2021-10-04","ADIZ_count":"56"},{"Date":"2021-10-05","ADIZ_count":"1"},{"Date":"2021-10-06","ADIZ_count":"0"},{"Date":"2021-10-07","ADIZ_count":"0"},{"Date":"2021-10-08","ADIZ_count":"0"},{"Date":"2021-10-09","ADIZ_count":"0"},{"Date":"2021-10-10","ADIZ_count":"3"},{"Date":"2021-10-11","ADIZ_count":"0"},{"Date":"2021-10-12","ADIZ_count":"0"},{"Date":"2021-10-13","ADIZ_count":"0"},{"Date":"2021-10-14","ADIZ_count":"0"},{"Date":"2021-10-15","ADIZ_count":"0"},{"Date":"2021-10-16","ADIZ_count":"1"},{"Date":"2021-10-17","ADIZ_count":"3"},{"Date":"2021-10-18","ADIZ_count":"2"},{"Date":"2021-10-19","ADIZ_count":"5"},{"Date":"2021-10-20","ADIZ_count":"2"},{"Date":"2021-10-21","ADIZ_count":"4"},{"Date":"2021-10-22","ADIZ_count":"1"},{"Date":"2021-10-23","ADIZ_count":"0"},{"Date":"2021-10-24","ADIZ_count":"1"},{"Date":"2021-10-25","ADIZ_count":"1"},{"Date":"2021-10-26","ADIZ_count":"7"},{"Date":"2021-10-27","ADIZ_count":"3"},{"Date":"2021-10-28","ADIZ_count":"2"},{"Date":"2021-10-29","ADIZ_count":"3"},{"Date":"2021-10-30","ADIZ_count":"0"},{"Date":"2021-10-31","ADIZ_count":"8"},{"Date":"2021-11-01","ADIZ_count":"6"},{"Date":"2021-11-02","ADIZ_count":"1"},{"Date":"2021-11-03","ADIZ_count":"0"},{"Date":"2021-11-04","ADIZ_count":"2"},{"Date":"2021-11-05","ADIZ_count":"1"},{"Date":"2021-11-06","ADIZ_count":"16"},{"Date":"2021-11-07","ADIZ_count":"4"},{"Date":"2021-11-08","ADIZ_count":"3"},{"Date":"2021-11-09","ADIZ_count":"6"},{"Date":"2021-11-10","ADIZ_count":"6"},{"Date":"2021-11-11","ADIZ_count":"4"},{"Date":"2021-11-12","ADIZ_count":"7"},{"Date":"2021-11-13","ADIZ_count":"6"},{"Date":"2021-11-14","ADIZ_count":"3"},{"Date":"2021-11-15","ADIZ_count":"6"},{"Date":"2021-11-16","ADIZ_count":"8"},{"Date":"2021-11-17","ADIZ_count":"4"},{"Date":"2021-11-18","ADIZ_count":"3"},{"Date":"2021-11-19","ADIZ_count":"3"},{"Date":"2021-11-20","ADIZ_count":"5"},{"Date":"2021-11-21","ADIZ_count":"9"},{"Date":"2021-11-22","ADIZ_count":"6"},{"Date":"2021-11-23","ADIZ_count":"4"},{"Date":"2021-11-24","ADIZ_count":"5"},{"Date":"2021-11-25","ADIZ_count":"2"},{"Date":"2021-11-26","ADIZ_count":"8"},{"Date":"2021-11-27","ADIZ_count":"4"},{"Date":"2021-11-28","ADIZ_count":"27"},{"Date":"2021-11-29","ADIZ_count":"5"},{"Date":"2021-11-30","ADIZ_count":"4"},{"Date":"2021-12-01","ADIZ_count":"2"},{"Date":"2021-12-02","ADIZ_count":"3"},{"Date":"2021-12-03","ADIZ_count":"2"},{"Date":"2021-12-04","ADIZ_count":"2"},{"Date":"2021-12-05","ADIZ_count":"0"},{"Date":"2021-12-06","ADIZ_count":"4"},{"Date":"2021-12-07","ADIZ_count":"9"},{"Date":"2021-12-08","ADIZ_count":"1"},{"Date":"2021-12-09","ADIZ_count":"5"},{"Date":"2021-12-10","ADIZ_count":"13"},{"Date":"2021-12-11","ADIZ_count":"2"},{"Date":"2021-12-12","ADIZ_count":"0"},{"Date":"2021-12-13","ADIZ_count":"1"},{"Date":"2021-12-14","ADIZ_count":"5"},{"Date":"2021-12-15","ADIZ_count":"2"},{"Date":"2021-12-16","ADIZ_count":"4"},{"Date":"2021-12-17","ADIZ_count":"0"},{"Date":"2021-12-18","ADIZ_count":"4"},{"Date":"2021-12-19","ADIZ_count":"1"},{"Date":"2021-12-20","ADIZ_count":"0"},{"Date":"2021-12-21","ADIZ_count":"0"},{"Date":"2021-12-22","ADIZ_count":"4"},{"Date":"2021-12-23","ADIZ_count":"4"},{"Date":"2021-12-24","ADIZ_count":"1"},{"Date":"2021-12-25","ADIZ_count":"1"},{"Date":"2021-12-26","ADIZ_count":"0"},{"Date":"2021-12-27","ADIZ_count":"0"},{"Date":"2021-12-28","ADIZ_count":"5"},{"Date":"2021-12-29","ADIZ_count":"5"},{"Date":"2021-12-30","ADIZ_count":"3"},{"Date":"2021-12-31","ADIZ_count":"3"},{"Date":"2022-01-01","ADIZ_count":"1"},{"Date":"2022-01-02","ADIZ_count":"1"},{"Date":"2022-01-03","ADIZ_count":"0"},{"Date":"2022-01-04","ADIZ_count":"7"},{"Date":"2022-01-05","ADIZ_count":"2"},{"Date":"2022-01-06","ADIZ_count":"3"},{"Date":"2022-01-07","ADIZ_count":"6"},{"Date":"2022-01-08","ADIZ_count":"1"},{"Date":"2022-01-09","ADIZ_count":"0"},{"Date":"2022-01-10","ADIZ_count":"9"},{"Date":"2022-01-11","ADIZ_count":"5"},{"Date":"2022-01-12","ADIZ_count":"2"},{"Date":"2022-01-13","ADIZ_count":"1"},{"Date":"2022-01-14","ADIZ_count":"11"},{"Date":"2022-01-15","ADIZ_count":"10"},{"Date":"2022-01-16","ADIZ_count":"0"},{"Date":"2022-01-17","ADIZ_count":"3"},{"Date":"2022-01-18","ADIZ_count":"2"},{"Date":"2022-01-19","ADIZ_count":"5"},{"Date":"2022-01-20","ADIZ_count":"1"},{"Date":"2022-01-21","ADIZ_count":"0"},{"Date":"2022-01-22","ADIZ_count":"0"},{"Date":"2022-01-23","ADIZ_count":"39"},{"Date":"2022-01-24","ADIZ_count":"13"},{"Date":"2022-01-25","ADIZ_count":"2"},{"Date":"2022-01-26","ADIZ_count":"0"},{"Date":"2022-01-27","ADIZ_count":"9"},{"Date":"2022-01-28","ADIZ_count":"1"},{"Date":"2022-01-29","ADIZ_count":"0"},{"Date":"2022-01-30","ADIZ_count":"4"},{"Date":"2022-01-31","ADIZ_count":"5"},{"Date":"2022-02-01","ADIZ_count":"0"},{"Date":"2022-02-02","ADIZ_count":"0"},{"Date":"2022-02-03","ADIZ_count":"0"},{"Date":"2022-02-04","ADIZ_count":"1"},{"Date":"2022-02-05","ADIZ_count":"2"},{"Date":"2022-02-06","ADIZ_count":"2"},{"Date":"2022-02-07","ADIZ_count":"0"},{"Date":"2022-02-08","ADIZ_count":"0"},{"Date":"2022-02-09","ADIZ_count":"5"},{"Date":"2022-02-10","ADIZ_count":"11"},{"Date":"2022-02-11","ADIZ_count":"2"},{"Date":"2022-02-12","ADIZ_count":"5"},{"Date":"2022-02-13","ADIZ_count":"0"},{"Date":"2022-02-14","ADIZ_count":"2"},{"Date":"2022-02-15","ADIZ_count":"0"},{"Date":"2022-02-16","ADIZ_count":"3"},{"Date":"2022-02-17","ADIZ_count":"1"},{"Date":"2022-02-18","ADIZ_count":"4"},{"Date":"2022-02-19","ADIZ_count":"0"},{"Date":"2022-02-20","ADIZ_count":"0"},{"Date":"2022-02-21","ADIZ_count":"0"},{"Date":"2022-02-22","ADIZ_count":"0"},{"Date":"2022-02-23","ADIZ_count":"2"},{"Date":"2022-02-24","ADIZ_count":"9"},{"Date":"2022-02-25","ADIZ_count":"4"},{"Date":"2022-02-26","ADIZ_count":"8"},{"Date":"2022-02-27","ADIZ_count":"2"},{"Date":"2022-02-28","ADIZ_count":"7"},{"Date":"2022-03-01","ADIZ_count":"7"},{"Date":"2022-03-02","ADIZ_count":"0"},{"Date":"2022-03-03","ADIZ_count":"0"},{"Date":"2022-03-04","ADIZ_count":"0"},{"Date":"2022-03-05","ADIZ_count":"0"},{"Date":"2022-03-06","ADIZ_count":"1"},{"Date":"2022-03-07","ADIZ_count":"2"},{"Date":"2022-03-08","ADIZ_count":"5"},{"Date":"2022-03-09","ADIZ_count":"1"},{"Date":"2022-03-10","ADIZ_count":"1"},{"Date":"2022-03-11","ADIZ_count":"3"},{"Date":"2022-03-12","ADIZ_count":"0"},{"Date":"2022-03-13","ADIZ_count":"0"},{"Date":"2022-03-14","ADIZ_count":"13"},{"Date":"2022-03-15","ADIZ_count":"3"},{"Date":"2022-03-16","ADIZ_count":"1"},{"Date":"2022-03-17","ADIZ_count":"1"},{"Date":"2022-03-18","ADIZ_count":"3"},{"Date":"2022-03-19","ADIZ_count":"4"},{"Date":"2022-03-20","ADIZ_count":"0"},{"Date":"2022-03-21","ADIZ_count":"0"},{"Date":"2022-03-22","ADIZ_count":"0"},{"Date":"2022-03-23","ADIZ_count":"0"},{"Date":"2022-03-24","ADIZ_count":"0"},{"Date":"2022-03-25","ADIZ_count":"0"},{"Date":"2022-03-26","ADIZ_count":"0"},{"Date":"2022-03-27","ADIZ_count":"3"},{"Date":"2022-03-28","ADIZ_count":"0"},{"Date":"2022-03-29","ADIZ_count":"0"},{"Date":"2022-03-30","ADIZ_count":"3"},{"Date":"2022-03-31","ADIZ_count":"13"},{"Date":"2022-04-01","ADIZ_count":"1"},{"Date":"2022-04-02","ADIZ_count":"1"},{"Date":"2022-04-03","ADIZ_count":"0"},{"Date":"2022-04-04","ADIZ_count":"1"},{"Date":"2022-04-05","ADIZ_count":"4"},{"Date":"2022-04-06","ADIZ_count":"1"},{"Date":"2022-04-07","ADIZ_count":"4"},{"Date":"2022-04-08","ADIZ_count":"4"},{"Date":"2022-04-09","ADIZ_count":"0"},{"Date":"2022-04-10","ADIZ_count":"3"},{"Date":"2022-04-11","ADIZ_count":"2"},{"Date":"2022-04-12","ADIZ_count":"4"},{"Date":"2022-04-13","ADIZ_count":"1"},{"Date":"2022-04-14","ADIZ_count":"1"},{"Date":"2022-04-15","ADIZ_count":"6"},{"Date":"2022-04-16","ADIZ_count":"0"},{"Date":"2022-04-17","ADIZ_count":"0"},{"Date":"2022-04-18","ADIZ_count":"0"},{"Date":"2022-04-19","ADIZ_count":"0"},{"Date":"2022-04-20","ADIZ_count":"11"},{"Date":"2022-04-21","ADIZ_count":"2"},{"Date":"2022-04-22","ADIZ_count":"7"},{"Date":"2022-04-23","ADIZ_count":"5"},{"Date":"2022-04-24","ADIZ_count":"0"},{"Date":"2022-04-25","ADIZ_count":"3"},{"Date":"2022-04-26","ADIZ_count":"2"},{"Date":"2022-04-27","ADIZ_count":"5"},{"Date":"2022-04-28","ADIZ_count":"5"},{"Date":"2022-04-29","ADIZ_count":"0"},{"Date":"2022-04-30","ADIZ_count":"2"},{"Date":"2022-05-01","ADIZ_count":"0"},{"Date":"2022-05-02","ADIZ_count":"0"},{"Date":"2022-05-03","ADIZ_count":"1"},{"Date":"2022-05-04","ADIZ_count":"3"},{"Date":"2022-05-05","ADIZ_count":"6"},{"Date":"2022-05-06","ADIZ_count":"18"},{"Date":"2022-05-07","ADIZ_count":"5"},{"Date":"2022-05-08","ADIZ_count":"2"},{"Date":"2022-05-09","ADIZ_count":"1"},{"Date":"2022-05-10","ADIZ_count":"3"},{"Date":"2022-05-11","ADIZ_count":"1"},{"Date":"2022-05-12","ADIZ_count":"0"},{"Date":"2022-05-13","ADIZ_count":"1"},{"Date":"2022-05-14","ADIZ_count":"0"},{"Date":"2022-05-15","ADIZ_count":"1"},{"Date":"2022-05-16","ADIZ_count":"0"},{"Date":"2022-05-17","ADIZ_count":"1"},{"Date":"2022-05-18","ADIZ_count":"4"},{"Date":"2022-05-19","ADIZ_count":"7"},{"Date":"2022-05-20","ADIZ_count":"14"},{"Date":"2022-05-21","ADIZ_count":"1"},{"Date":"2022-05-22","ADIZ_count":"0"},{"Date":"2022-05-23","ADIZ_count":"1"},{"Date":"2022-05-24","ADIZ_count":"0"},{"Date":"2022-05-25","ADIZ_count":"4"},{"Date":"2022-05-26","ADIZ_count":"0"},{"Date":"2022-05-27","ADIZ_count":"0"},{"Date":"2022-05-28","ADIZ_count":"7"},{"Date":"2022-05-29","ADIZ_count":"5"},{"Date":"2022-05-30","ADIZ_count":"30"},{"Date":"2022-05-31","ADIZ_count":"3"},{"Date":"2022-06-01","ADIZ_count":"0"},{"Date":"2022-06-02","ADIZ_count":"1"},{"Date":"2022-06-03","ADIZ_count":"0"},{"Date":"2022-06-04","ADIZ_count":"0"},{"Date":"2022-06-05","ADIZ_count":"2"},{"Date":"2022-06-06","ADIZ_count":"1"},{"Date":"2022-06-07","ADIZ_count":"0"},{"Date":"2022-06-08","ADIZ_count":"0"},{"Date":"2022-06-09","ADIZ_count":"0"},{"Date":"2022-06-10","ADIZ_count":"0"},{"Date":"2022-06-11","ADIZ_count":"0"},{"Date":"2022-06-12","ADIZ_count":"0"},{"Date":"2022-06-13","ADIZ_count":"1"},{"Date":"2022-06-14","ADIZ_count":"1"},{"Date":"2022-06-15","ADIZ_count":"0"},{"Date":"2022-06-16","ADIZ_count":"2"},{"Date":"2022-06-17","ADIZ_count":"0"},{"Date":"2022-06-18","ADIZ_count":"3"},{"Date":"2022-06-19","ADIZ_count":"10"},{"Date":"2022-06-20","ADIZ_count":"1"},{"Date":"2022-06-21","ADIZ_count":"29"},{"Date":"2022-06-22","ADIZ_count":"6"},{"Date":"2022-06-23","ADIZ_count":"22"},{"Date":"2022-06-24","ADIZ_count":"0"},{"Date":"2022-06-25","ADIZ_count":"0"},{"Date":"2022-06-26","ADIZ_count":"1"},{"Date":"2022-06-27","ADIZ_count":"1"},{"Date":"2022-06-28","ADIZ_count":"2"},{"Date":"2022-06-29","ADIZ_count":"1"},{"Date":"2022-06-30","ADIZ_count":"0"},{"Date":"2022-07-01","ADIZ_count":"0"},{"Date":"2022-07-02","ADIZ_count":"0"},{"Date":"2022-07-03","ADIZ_count":"0"},{"Date":"2022-07-04","ADIZ_count":"0"},{"Date":"2022-07-05","ADIZ_count":"0"},{"Date":"2022-07-06","ADIZ_count":"0"},{"Date":"2022-07-07","ADIZ_count":"1"},{"Date":"2022-07-08","ADIZ_count":"9"},{"Date":"2022-07-09","ADIZ_count":"5"},{"Date":"2022-07-10","ADIZ_count":"2"},{"Date":"2022-07-11","ADIZ_count":"3"},{"Date":"2022-07-12","ADIZ_count":"4"},{"Date":"2022-07-13","ADIZ_count":"1"},{"Date":"2022-07-14","ADIZ_count":"0"},{"Date":"2022-07-15","ADIZ_count":"10"},{"Date":"2022-07-16","ADIZ_count":"0"},{"Date":"2022-07-17","ADIZ_count":"1"},{"Date":"2022-07-18","ADIZ_count":"2"},{"Date":"2022-07-19","ADIZ_count":"1"},{"Date":"2022-07-20","ADIZ_count":"3"},{"Date":"2022-07-21","ADIZ_count":"1"},{"Date":"2022-07-22","ADIZ_count":"6"},{"Date":"2022-07-23","ADIZ_count":"4"},{"Date":"2022-07-24","ADIZ_count":"4"},{"Date":"2022-07-25","ADIZ_count":"2"},{"Date":"2022-07-26","ADIZ_count":"3"},{"Date":"2022-07-27","ADIZ_count":"3"},{"Date":"2022-07-28","ADIZ_count":"3"},{"Date":"2022-07-29","ADIZ_count":"1"},{"Date":"2022-07-30","ADIZ_count":"1"},{"Date":"2022-07-31","ADIZ_count":"0"},{"Date":"2022-08-01","ADIZ_count":"4"},{"Date":"2022-08-02","ADIZ_count":"21"},{"Date":"2022-08-03","ADIZ_count":"27"},{"Date":"2022-08-04","ADIZ_count":"22"},{"Date":"2022-08-05","ADIZ_count":"49"},{"Date":"2022-08-06","ADIZ_count":"20"},{"Date":"2022-08-07","ADIZ_count":"22"},{"Date":"2022-08-08","ADIZ_count":"21"},{"Date":"2022-08-09","ADIZ_count":"16"},{"Date":"2022-08-10","ADIZ_count":"17"},{"Date":"2022-08-11","ADIZ_count":"11"},{"Date":"2022-08-12","ADIZ_count":"10"},{"Date":"2022-08-13","ADIZ_count":"13"},{"Date":"2022-08-14","ADIZ_count":"11"},{"Date":"2022-08-15","ADIZ_count":"15"},{"Date":"2022-08-16","ADIZ_count":"10"},{"Date":"2022-08-17","ADIZ_count":"5"},{"Date":"2022-08-18","ADIZ_count":"25"},{"Date":"2022-08-19","ADIZ_count":"8"},{"Date":"2022-08-20","ADIZ_count":"7"},{"Date":"2022-08-21","ADIZ_count":"5"},{"Date":"2022-08-22","ADIZ_count":"11"},{"Date":"2022-08-23","ADIZ_count":"9"},{"Date":"2022-08-24","ADIZ_count":"2"},{"Date":"2022-08-25","ADIZ_count":"9"},{"Date":"2022-08-26","ADIZ_count":"18"},{"Date":"2022-08-27","ADIZ_count":"13"},{"Date":"2022-08-28","ADIZ_count":"10"},{"Date":"2022-08-29","ADIZ_count":"12"},{"Date":"2022-08-30","ADIZ_count":"8"},{"Date":"2022-08-31","ADIZ_count":"15"},{"Date":"2022-09-01","ADIZ_count":"23"},{"Date":"2022-09-02","ADIZ_count":"4"},{"Date":"2022-09-03","ADIZ_count":"2"},{"Date":"2022-09-04","ADIZ_count":"3"},{"Date":"2022-09-05","ADIZ_count":"9"},{"Date":"2022-09-06","ADIZ_count":"3"},{"Date":"2022-09-07","ADIZ_count":"3"},{"Date":"2022-09-08","ADIZ_count":"25"},{"Date":"2022-09-09","ADIZ_count":"6"},{"Date":"2022-09-10","ADIZ_count":"19"},{"Date":"2022-09-11","ADIZ_count":"5"},{"Date":"2022-09-12","ADIZ_count":"3"},{"Date":"2022-09-13","ADIZ_count":"3"},{"Date":"2022-09-14","ADIZ_count":"3"},{"Date":"2022-09-15","ADIZ_count":"11"},{"Date":"2022-09-16","ADIZ_count":"20"},{"Date":"2022-09-17","ADIZ_count":"2"},{"Date":"2022-09-18","ADIZ_count":"1"},{"Date":"2022-09-19","ADIZ_count":"4"},{"Date":"2022-09-20","ADIZ_count":"0"},{"Date":"2022-09-21","ADIZ_count":"17"},{"Date":"2022-09-22","ADIZ_count":"3"},{"Date":"2022-09-23","ADIZ_count":"4"},{"Date":"2022-09-24","ADIZ_count":"3"},{"Date":"2022-09-25","ADIZ_count":"2"},{"Date":"2022-09-26","ADIZ_count":"3"},{"Date":"2022-09-27","ADIZ_count":"0"},{"Date":"2022-09-28","ADIZ_count":"10"},{"Date":"2022-09-29","ADIZ_count":"1"},{"Date":"2022-09-30","ADIZ_count":"0"},{"Date":"2022-10-01","ADIZ_count":"2"},{"Date":"2022-10-02","ADIZ_count":"8"},{"Date":"2022-10-03","ADIZ_count":"1"},{"Date":"2022-10-04","ADIZ_count":"2"},{"Date":"2022-10-05","ADIZ_count":"9"},{"Date":"2022-10-06","ADIZ_count":"1"},{"Date":"2022-10-07","ADIZ_count":"0"},{"Date":"2022-10-08","ADIZ_count":"0"},{"Date":"2022-10-09","ADIZ_count":"2"},{"Date":"2022-10-10","ADIZ_count":"8"},{"Date":"2022-10-11","ADIZ_count":"2"},{"Date":"2022-10-12","ADIZ_count":"6"},{"Date":"2022-10-13","ADIZ_count":"2"},{"Date":"2022-10-14","ADIZ_count":"4"},{"Date":"2022-10-15","ADIZ_count":"2"},{"Date":"2022-10-16","ADIZ_count":"0"},{"Date":"2022-10-17","ADIZ_count":"0"},{"Date":"2022-10-18","ADIZ_count":"2"},{"Date":"2022-10-19","ADIZ_count":"2"},{"Date":"2022-10-20","ADIZ_count":"2"},{"Date":"2022-10-21","ADIZ_count":"7"},{"Date":"2022-10-22","ADIZ_count":"0"},{"Date":"2022-10-23","ADIZ_count":"0"},{"Date":"2022-10-24","ADIZ_count":"0"},{"Date":"2022-10-25","ADIZ_count":"7"},{"Date":"2022-10-26","ADIZ_count":"9"},{"Date":"2022-10-27","ADIZ_count":"9"},{"Date":"2022-10-28","ADIZ_count":"2"},{"Date":"2022-10-29","ADIZ_count":"7"},{"Date":"2022-10-30","ADIZ_count":"1"},{"Date":"2022-10-31","ADIZ_count":"0"},{"Date":"2022-11-01","ADIZ_count":"0"},{"Date":"2022-11-02","ADIZ_count":"0"},{"Date":"2022-11-03","ADIZ_count":"0"},{"Date":"2022-11-04","ADIZ_count":"15"},{"Date":"2022-11-05","ADIZ_count":"1"},{"Date":"2022-11-06","ADIZ_count":"21"},{"Date":"2022-11-07","ADIZ_count":"31"},{"Date":"2022-11-08","ADIZ_count":"3"},{"Date":"2022-11-09","ADIZ_count":"9"},{"Date":"2022-11-10","ADIZ_count":"8"},{"Date":"2022-11-11","ADIZ_count":"5"},{"Date":"2022-11-12","ADIZ_count":"21"},{"Date":"2022-11-13","ADIZ_count":"0"},{"Date":"2022-11-14","ADIZ_count":"0"},{"Date":"2022-11-15","ADIZ_count":"5"},{"Date":"2022-11-16","ADIZ_count":"6"},{"Date":"2022-11-17","ADIZ_count":"7"},{"Date":"2022-11-18","ADIZ_count":"4"},{"Date":"2022-11-19","ADIZ_count":"3"},{"Date":"2022-11-20","ADIZ_count":"5"},{"Date":"2022-11-21","ADIZ_count":"6"},{"Date":"2022-11-22","ADIZ_count":"3"},{"Date":"2022-11-23","ADIZ_count":"2"},{"Date":"2022-11-24","ADIZ_count":"0"},{"Date":"2022-11-25","ADIZ_count":"5"},{"Date":"2022-11-26","ADIZ_count":"4"},{"Date":"2022-11-27","ADIZ_count":"3"},{"Date":"2022-11-28","ADIZ_count":"0"},{"Date":"2022-11-29","ADIZ_count":"3"},{"Date":"2022-11-30","ADIZ_count":"1"},{"Date":"2022-12-01","ADIZ_count":"5"},{"Date":"2022-12-02","ADIZ_count":"1"},{"Date":"2022-12-03","ADIZ_count":"10"},{"Date":"2022-12-04","ADIZ_count":"0"},{"Date":"2022-12-05","ADIZ_count":"7"},{"Date":"2022-12-06","ADIZ_count":"4"},{"Date":"2022-12-07","ADIZ_count":"11"},{"Date":"2022-12-08","ADIZ_count":"16"},{"Date":"2022-12-09","ADIZ_count":"1"},{"Date":"2022-12-10","ADIZ_count":"6"},{"Date":"2022-12-11","ADIZ_count":"1"},{"Date":"2022-12-12","ADIZ_count":"21"},{"Date":"2022-12-13","ADIZ_count":"1"},{"Date":"2022-12-14","ADIZ_count":"0"},{"Date":"2022-12-15","ADIZ_count":"1"},{"Date":"2022-12-16","ADIZ_count":"0"},{"Date":"2022-12-17","ADIZ_count":"0"},{"Date":"2022-12-18","ADIZ_count":"9"},{"Date":"2022-12-19","ADIZ_count":"6"},{"Date":"2022-12-20","ADIZ_count":"4"},{"Date":"2022-12-21","ADIZ_count":"30"},{"Date":"2022-12-22","ADIZ_count":"2"},{"Date":"2022-12-23","ADIZ_count":"0"},{"Date":"2022-12-24","ADIZ_count":"1"},{"Date":"2022-12-25","ADIZ_count":"47"},{"Date":"2022-12-26","ADIZ_count":"0"},{"Date":"2022-12-27","ADIZ_count":"3"},{"Date":"2022-12-28","ADIZ_count":"2"},{"Date":"2022-12-29","ADIZ_count":"1"},{"Date":"2022-12-30","ADIZ_count":"2"},{"Date":"2022-12-31","ADIZ_count":"15"},{"Date":"2023-01-01","ADIZ_count":"0"},{"Date":"2023-01-02","ADIZ_count":"0"},{"Date":"2023-01-03","ADIZ_count":"1"},{"Date":"2023-01-04","ADIZ_count":"4"},{"Date":"2023-01-05","ADIZ_count":"4"},{"Date":"2023-01-06","ADIZ_count":"16"},{"Date":"2023-01-07","ADIZ_count":"1"},{"Date":"2023-01-08","ADIZ_count":"28"},{"Date":"2023-01-09","ADIZ_count":"7"},{"Date":"2023-01-10","ADIZ_count":"2"},{"Date":"2023-01-11","ADIZ_count":"6"},{"Date":"2023-01-12","ADIZ_count":"2"},{"Date":"2023-01-13","ADIZ_count":"0"},{"Date":"2023-01-14","ADIZ_count":"1"},{"Date":"2023-01-15","ADIZ_count":"2"},{"Date":"2023-01-16","ADIZ_count":"1"},{"Date":"2023-01-17","ADIZ_count":"6"},{"Date":"2023-01-18","ADIZ_count":"4"},{"Date":"2023-01-19","ADIZ_count":"12"},{"Date":"2023-01-20","ADIZ_count":"1"},{"Date":"2023-01-21","ADIZ_count":"0"},{"Date":"2023-01-22","ADIZ_count":"0"},{"Date":"2023-01-23","ADIZ_count":"0"},{"Date":"2023-01-24","ADIZ_count":"0"},{"Date":"2023-01-25","ADIZ_count":"1"},{"Date":"2023-01-26","ADIZ_count":"2"},{"Date":"2023-01-27","ADIZ_count":"0"},{"Date":"2023-01-28","ADIZ_count":"1"},{"Date":"2023-01-29","ADIZ_count":"2"},{"Date":"2023-01-30","ADIZ_count":"2"},{"Date":"2023-01-31","ADIZ_count":"20"},{"Date":"2023-02-01","ADIZ_count":"17"},{"Date":"2023-02-02","ADIZ_count":"5"},{"Date":"2023-02-03","ADIZ_count":"2"},{"Date":"2023-02-04","ADIZ_count":"2"},{"Date":"2023-02-05","ADIZ_count":"0"},{"Date":"2023-02-06","ADIZ_count":"0"},{"Date":"2023-02-07","ADIZ_count":"1"},{"Date":"2023-02-08","ADIZ_count":"2"},{"Date":"2023-02-09","ADIZ_count":"0"},{"Date":"2023-02-10","ADIZ_count":"0"},{"Date":"2023-02-11","ADIZ_count":"0"},{"Date":"2023-02-12","ADIZ_count":"11"},{"Date":"2023-02-13","ADIZ_count":"1"},{"Date":"2023-02-14","ADIZ_count":"0"},{"Date":"2023-02-15","ADIZ_count":"3"},{"Date":"2023-02-16","ADIZ_count":"1"},{"Date":"2023-02-17","ADIZ_count":"15"},{"Date":"2023-02-18","ADIZ_count":"2"},{"Date":"2023-02-19","ADIZ_count":"0"},{"Date":"2023-02-20","ADIZ_count":"2"},{"Date":"2023-02-21","ADIZ_count":"5"},{"Date":"2023-02-22","ADIZ_count":"5"},{"Date":"2023-02-23","ADIZ_count":"12"},{"Date":"2023-02-24","ADIZ_count":"2"},{"Date":"2023-02-25","ADIZ_count":"2"},{"Date":"2023-02-26","ADIZ_count":"0"},{"Date":"2023-02-27","ADIZ_count":"4"},{"Date":"2023-02-28","ADIZ_count":"19"},{"Date":"2023-03-01","ADIZ_count":"21"},{"Date":"2023-03-02","ADIZ_count":"4"},{"Date":"2023-03-03","ADIZ_count":"12"},{"Date":"2023-03-04","ADIZ_count":"0"},{"Date":"2023-03-05","ADIZ_count":"2"},{"Date":"2023-03-06","ADIZ_count":"1"},{"Date":"2023-03-07","ADIZ_count":"0"},{"Date":"2023-03-08","ADIZ_count":"5"},{"Date":"2023-03-09","ADIZ_count":"1"},{"Date":"2023-03-10","ADIZ_count":"4"},{"Date":"2023-03-11","ADIZ_count":"0"},{"Date":"2023-03-12","ADIZ_count":"0"},{"Date":"2023-03-13","ADIZ_count":"0"},{"Date":"2023-03-14","ADIZ_count":"16"},{"Date":"2023-03-15","ADIZ_count":"3"},{"Date":"2023-03-16","ADIZ_count":"5"},{"Date":"2023-03-17","ADIZ_count":"15"},{"Date":"2023-03-18","ADIZ_count":"2"},{"Date":"2023-03-19","ADIZ_count":"0"},{"Date":"2023-03-20","ADIZ_count":"3"},{"Date":"2023-03-21","ADIZ_count":"2"},{"Date":"2023-03-22","ADIZ_count":"1"},{"Date":"2023-03-23","ADIZ_count":"0"},{"Date":"2023-03-24","ADIZ_count":"1"},{"Date":"2023-03-25","ADIZ_count":"0"},{"Date":"2023-03-26","ADIZ_count":"0"},{"Date":"2023-03-27","ADIZ_count":"3"},{"Date":"2023-03-28","ADIZ_count":"11"},{"Date":"2023-03-29","ADIZ_count":"0"},{"Date":"2023-03-30","ADIZ_count":"0"},{"Date":"2023-03-31","ADIZ_count":"10"},{"Date":"2023-04-01","ADIZ_count":"4"},{"Date":"2023-04-02","ADIZ_count":"0"},{"Date":"2023-04-03","ADIZ_count":"9"},{"Date":"2023-04-04","ADIZ_count":"2"},{"Date":"2023-04-05","ADIZ_count":"1"},{"Date":"2023-04-06","ADIZ_count":"2"},{"Date":"2023-04-07","ADIZ_count":"4"},{"Date":"2023-04-08","ADIZ_count":"45"},{"Date":"2023-04-09","ADIZ_count":"35"},{"Date":"2023-04-10","ADIZ_count":"54"},{"Date":"2023-04-11","ADIZ_count":"15"},{"Date":"2023-04-12","ADIZ_count":"14"},{"Date":"2023-04-13","ADIZ_count":"1"},{"Date":"2023-04-14","ADIZ_count":"3"},{"Date":"2023-04-15","ADIZ_count":"4"},{"Date":"2023-04-16","ADIZ_count":"4"},{"Date":"2023-04-17","ADIZ_count":"4"},{"Date":"2023-04-18","ADIZ_count":"1"},{"Date":"2023-04-19","ADIZ_count":"0"},{"Date":"2023-04-20","ADIZ_count":"10"},{"Date":"2023-04-21","ADIZ_count":"1"},{"Date":"2023-04-22","ADIZ_count":"3"},{"Date":"2023-04-23","ADIZ_count":"1"},{"Date":"2023-04-24","ADIZ_count":"1"},{"Date":"2023-04-25","ADIZ_count":"1"},{"Date":"2023-04-26","ADIZ_count":"5"},{"Date":"2023-04-27","ADIZ_count":"19"},{"Date":"2023-04-28","ADIZ_count":"13"},{"Date":"2023-04-29","ADIZ_count":"1"},{"Date":"2023-04-30","ADIZ_count":"2"},{"Date":"2023-05-01","ADIZ_count":"2"},{"Date":"2023-05-02","ADIZ_count":"13"},{"Date":"2023-05-03","ADIZ_count":"4"},{"Date":"2023-05-04","ADIZ_count":"1"},{"Date":"2023-05-05","ADIZ_count":"1"},{"Date":"2023-05-06","ADIZ_count":"4"},{"Date":"2023-05-07","ADIZ_count":"0"},{"Date":"2023-05-08","ADIZ_count":"2"},{"Date":"2023-05-09","ADIZ_count":"15"},{"Date":"2023-05-10","ADIZ_count":"3"},{"Date":"2023-05-11","ADIZ_count":"13"},{"Date":"2023-05-12","ADIZ_count":"1"},{"Date":"2023-05-13","ADIZ_count":"1"},{"Date":"2023-05-14","ADIZ_count":"0"},{"Date":"2023-05-15","ADIZ_count":"8"},{"Date":"2023-05-16","ADIZ_count":"3"},{"Date":"2023-05-17","ADIZ_count":"1"},{"Date":"2023-05-18","ADIZ_count":"2"},{"Date":"2023-05-19","ADIZ_count":"1"},{"Date":"2023-05-20","ADIZ_count":"12"},{"Date":"2023-05-21","ADIZ_count":"1"},{"Date":"2023-05-22","ADIZ_count":"0"},{"Date":"2023-05-23","ADIZ_count":"2"},{"Date":"2023-05-24","ADIZ_count":"2"},{"Date":"2023-05-25","ADIZ_count":"13"},{"Date":"2023-05-26","ADIZ_count":"12"},{"Date":"2023-05-27","ADIZ_count":"5"},{"Date":"2023-05-28","ADIZ_count":"1"},{"Date":"2023-05-29","ADIZ_count":"2"},{"Date":"2023-05-30","ADIZ_count":"0"},{"Date":"2023-05-31","ADIZ_count":"0"},{"Date":"2023-06-01","ADIZ_count":"2"},{"Date":"2023-06-02","ADIZ_count":"2"},{"Date":"2023-06-03","ADIZ_count":"2"},{"Date":"2023-06-04","ADIZ_count":"1"},{"Date":"2023-06-05","ADIZ_count":"2"},{"Date":"2023-06-06","ADIZ_count":"0"},{"Date":"2023-06-07","ADIZ_count":"1"},{"Date":"2023-06-08","ADIZ_count":"37"},{"Date":"2023-06-09","ADIZ_count":"1"},{"Date":"2023-06-10","ADIZ_count":"1"},{"Date":"2023-06-11","ADIZ_count":"10"},{"Date":"2023-06-12","ADIZ_count":"0"},{"Date":"2023-06-13","ADIZ_count":"4"},{"Date":"2023-06-14","ADIZ_count":"0"},{"Date":"2023-06-15","ADIZ_count":"1"},{"Date":"2023-06-16","ADIZ_count":"1"},{"Date":"2023-06-17","ADIZ_count":"1"},{"Date":"2023-06-18","ADIZ_count":"2"},{"Date":"2023-06-19","ADIZ_count":"1"},{"Date":"2023-06-20","ADIZ_count":"2"},{"Date":"2023-06-21","ADIZ_count":"4"},{"Date":"2023-06-22","ADIZ_count":"0"},{"Date":"2023-06-23","ADIZ_count":"1"},{"Date":"2023-06-24","ADIZ_count":"8"},{"Date":"2023-06-25","ADIZ_count":"2"},{"Date":"2023-06-26","ADIZ_count":"5"},{"Date":"2023-06-27","ADIZ_count":"3"},{"Date":"2023-06-28","ADIZ_count":"2"},{"Date":"2023-06-29","ADIZ_count":"1"},{"Date":"2023-06-30","ADIZ_count":"12"},{"Date":"2023-07-01","ADIZ_count":"0"},{"Date":"2023-07-02","ADIZ_count":"1"},{"Date":"2023-07-03","ADIZ_count":"1"},{"Date":"2023-07-04","ADIZ_count":"9"},{"Date":"2023-07-05","ADIZ_count":"1"},{"Date":"2023-07-06","ADIZ_count":"1"},{"Date":"2023-07-07","ADIZ_count":"4"},{"Date":"2023-07-08","ADIZ_count":"4"},{"Date":"2023-07-09","ADIZ_count":"1"},{"Date":"2023-07-10","ADIZ_count":"2"},{"Date":"2023-07-11","ADIZ_count":"32"},{"Date":"2023-07-12","ADIZ_count":"24"},{"Date":"2023-07-13","ADIZ_count":"17"},{"Date":"2023-07-14","ADIZ_count":"3"},{"Date":"2023-07-15","ADIZ_count":"0"},{"Date":"2023-07-16","ADIZ_count":"0"},{"Date":"2023-07-17","ADIZ_count":"0"},{"Date":"2023-07-18","ADIZ_count":"0"},{"Date":"2023-07-19","ADIZ_count":"2"},{"Date":"2023-07-20","ADIZ_count":"13"},{"Date":"2023-07-21","ADIZ_count":"22"},{"Date":"2023-07-22","ADIZ_count":"2"},{"Date":"2023-07-23","ADIZ_count":"4"},{"Date":"2023-07-24","ADIZ_count":"10"},{"Date":"2023-07-25","ADIZ_count":"3"},{"Date":"2023-07-26","ADIZ_count":"0"},{"Date":"2023-07-27","ADIZ_count":"0"},{"Date":"2023-07-28","ADIZ_count":"0"},{"Date":"2023-07-29","ADIZ_count":"0"},{"Date":"2023-07-30","ADIZ_count":"6"},{"Date":"2023-07-31","ADIZ_count":"1"},{"Date":"2023-08-01","ADIZ_count":"0"},{"Date":"2023-08-02","ADIZ_count":"5"},{"Date":"2023-08-03","ADIZ_count":"4"},{"Date":"2023-08-04","ADIZ_count":"2"},{"Date":"2023-08-05","ADIZ_count":"2"},{"Date":"2023-08-06","ADIZ_count":"12"},{"Date":"2023-08-07","ADIZ_count":"1"},{"Date":"2023-08-08","ADIZ_count":"2"},{"Date":"2023-08-09","ADIZ_count":"10"},{"Date":"2023-08-10","ADIZ_count":"2"},{"Date":"2023-08-11","ADIZ_count":"1"},{"Date":"2023-08-12","ADIZ_count":"0"},{"Date":"2023-08-13","ADIZ_count":"0"},{"Date":"2023-08-14","ADIZ_count":"5"},{"Date":"2023-08-15","ADIZ_count":"3"},{"Date":"2023-08-16","ADIZ_count":"2"},{"Date":"2023-08-17","ADIZ_count":"0"},{"Date":"2023-08-18","ADIZ_count":"0"},{"Date":"2023-08-19","ADIZ_count":"27"},{"Date":"2023-08-20","ADIZ_count":"0"},{"Date":"2023-08-21","ADIZ_count":"5"},{"Date":"2023-08-22","ADIZ_count":"1"},{"Date":"2023-08-23","ADIZ_count":"1"},{"Date":"2023-08-24","ADIZ_count":"3"},{"Date":"2023-08-25","ADIZ_count":"20"},{"Date":"2023-08-26","ADIZ_count":"1"},{"Date":"2023-08-27","ADIZ_count":"6"},{"Date":"2023-08-28","ADIZ_count":"3"},{"Date":"2023-08-29","ADIZ_count":"12"},{"Date":"2023-08-30","ADIZ_count":"0"},{"Date":"2023-08-31","ADIZ_count":"0"},{"Date":"2023-09-01","ADIZ_count":"0"},{"Date":"2023-09-02","ADIZ_count":"0"},{"Date":"2023-09-03","ADIZ_count":"0"},{"Date":"2023-09-04","ADIZ_count":"0"},{"Date":"2023-09-05","ADIZ_count":"0"},{"Date":"2023-09-06","ADIZ_count":"0"},{"Date":"2023-09-07","ADIZ_count":"0"},{"Date":"2023-09-08","ADIZ_count":"0"},{"Date":"2023-09-09","ADIZ_count":"0"},{"Date":"2023-09-10","ADIZ_count":"11"},{"Date":"2023-09-11","ADIZ_count":"13"},{"Date":"2023-09-12","ADIZ_count":"9"},{"Date":"2023-09-13","ADIZ_count":"40"},{"Date":"2023-09-14","ADIZ_count":"13"},{"Date":"2023-09-15","ADIZ_count":"0"},{"Date":"2023-09-16","ADIZ_count":"0"},{"Date":"2023-09-17","ADIZ_count":"40"},{"Date":"2023-09-18","ADIZ_count":"27"},{"Date":"2023-09-19","ADIZ_count":"2"},{"Date":"2023-09-20","ADIZ_count":"10"},{"Date":"2023-09-21","ADIZ_count":"24"},{"Date":"2023-09-22","ADIZ_count":"2"},{"Date":"2023-09-23","ADIZ_count":"2"},{"Date":"2023-09-24","ADIZ_count":"0"},{"Date":"2023-09-25","ADIZ_count":"2"},{"Date":"2023-09-26","ADIZ_count":"16"},{"Date":"2023-09-27","ADIZ_count":"5"},{"Date":"2023-09-28","ADIZ_count":"4"},{"Date":"2023-09-29","ADIZ_count":"4"},{"Date":"2023-09-30","ADIZ_count":"1"},{"Date":"2023-10-01","ADIZ_count":"0"},{"Date":"2023-10-02","ADIZ_count":"2"},{"Date":"2023-10-03","ADIZ_count":"16"},{"Date":"2023-10-04","ADIZ_count":"0"},{"Date":"2023-10-05","ADIZ_count":"0"},{"Date":"2023-10-06","ADIZ_count":"0"},{"Date":"2023-10-07","ADIZ_count":"0"},{"Date":"2023-10-08","ADIZ_count":"0"},{"Date":"2023-10-09","ADIZ_count":"0"},{"Date":"2023-10-10","ADIZ_count":"6"},{"Date":"2023-10-11","ADIZ_count":"14"},{"Date":"2023-10-12","ADIZ_count":"1"},{"Date":"2023-10-13","ADIZ_count":"0"},{"Date":"2023-10-14","ADIZ_count":"2"},{"Date":"2023-10-15","ADIZ_count":"0"},{"Date":"2023-10-16","ADIZ_count":"0"},{"Date":"2023-10-17","ADIZ_count":"0"},{"Date":"2023-10-18","ADIZ_count":"2"},{"Date":"2023-10-19","ADIZ_count":"18"},{"Date":"2023-10-20","ADIZ_count":"1"},{"Date":"2023-10-21","ADIZ_count":"2"},{"Date":"2023-10-22","ADIZ_count":"1"},{"Date":"2023-10-23","ADIZ_count":"1"},{"Date":"2023-10-24","ADIZ_count":"6"},{"Date":"2023-10-25","ADIZ_count":"4"},{"Date":"2023-10-26","ADIZ_count":"23"},{"Date":"2023-10-27","ADIZ_count":"0"},{"Date":"2023-10-28","ADIZ_count":"0"},{"Date":"2023-10-29","ADIZ_count":"1"},{"Date":"2023-10-30","ADIZ_count":"4"},{"Date":"2023-10-31","ADIZ_count":"37"},{"Date":"2023-11-01","ADIZ_count":"5"},{"Date":"2023-11-02","ADIZ_count":"20"},{"Date":"2023-11-03","ADIZ_count":"1"},{"Date":"2023-11-04","ADIZ_count":"0"},{"Date":"2023-11-05","ADIZ_count":"1"},{"Date":"2023-11-06","ADIZ_count":"3"},{"Date":"2023-11-07","ADIZ_count":"4"},{"Date":"2023-11-08","ADIZ_count":"5"},{"Date":"2023-11-09","ADIZ_count":"1"},{"Date":"2023-11-10","ADIZ_count":"1"},{"Date":"2023-11-11","ADIZ_count":"1"},{"Date":"2023-11-12","ADIZ_count":"4"},{"Date":"2023-11-13","ADIZ_count":"0"},{"Date":"2023-11-14","ADIZ_count":"1"},{"Date":"2023-11-15","ADIZ_count":"4"},{"Date":"2023-11-16","ADIZ_count":"2"},{"Date":"2023-11-17","ADIZ_count":"2"},{"Date":"2023-11-18","ADIZ_count":"1"},{"Date":"2023-11-19","ADIZ_count":"9"},{"Date":"2023-11-20","ADIZ_count":"4"},{"Date":"2023-11-21","ADIZ_count":"4"},{"Date":"2023-11-22","ADIZ_count":"12"},{"Date":"2023-11-23","ADIZ_count":"1"},{"Date":"2023-11-24","ADIZ_count":"3"},{"Date":"2023-11-25","ADIZ_count":"1"},{"Date":"2023-11-26","ADIZ_count":"2"},{"Date":"2023-11-27","ADIZ_count":"1"},{"Date":"2023-11-28","ADIZ_count":"5"},{"Date":"2023-11-29","ADIZ_count":"0"},{"Date":"2023-11-30","ADIZ_count":"12"},{"Date":"2023-12-01","ADIZ_count":"0"},{"Date":"2023-12-02","ADIZ_count":"0"},{"Date":"2023-12-03","ADIZ_count":"0"},{"Date":"2023-12-04","ADIZ_count":"0"},{"Date":"2023-12-05","ADIZ_count":"0"},{"Date":"2023-12-06","ADIZ_count":"2"},{"Date":"2023-12-07","ADIZ_count":"15"},{"Date":"2023-12-08","ADIZ_count":"2"},{"Date":"2023-12-09","ADIZ_count":"4"},{"Date":"2023-12-10","ADIZ_count":"1"},{"Date":"2023-12-11","ADIZ_count":"1"},{"Date":"2023-12-12","ADIZ_count":"1"},{"Date":"2023-12-13","ADIZ_count":"3"},{"Date":"2023-12-14","ADIZ_count":"2"},{"Date":"2023-12-15","ADIZ_count":"10"},{"Date":"2023-12-16","ADIZ_count":"0"},{"Date":"2023-12-17","ADIZ_count":"1"},{"Date":"2023-12-18","ADIZ_count":"0"},{"Date":"2023-12-19","ADIZ_count":"1"},{"Date":"2023-12-20","ADIZ_count":"0"},{"Date":"2023-12-21","ADIZ_count":"3"},{"Date":"2023-12-22","ADIZ_count":"3"},{"Date":"2023-12-23","ADIZ_count":"11"},{"Date":"2023-12-24","ADIZ_count":"0"},{"Date":"2023-12-25","ADIZ_count":"3"},{"Date":"2023-12-26","ADIZ_count":"3"},{"Date":"2023-12-27","ADIZ_count":"0"},{"Date":"2023-12-28","ADIZ_count":"12"},{"Date":"2023-12-29","ADIZ_count":"0"},{"Date":"2023-12-30","ADIZ_count":"1"},{"Date":"2023-12-31","ADIZ_count":"1"},{"Date":"2024-01-01","ADIZ_count":"1"},{"Date":"2024-01-02","ADIZ_count":"2"},{"Date":"2024-01-03","ADIZ_count":"1"},{"Date":"2024-01-04","ADIZ_count":"2"},{"Date":"2024-01-05","ADIZ_count":"1"},{"Date":"2024-01-06","ADIZ_count":"0"},{"Date":"2024-01-07","ADIZ_count":"1"},{"Date":"2024-01-08","ADIZ_count":"2"},{"Date":"2024-01-09","ADIZ_count":"1"},{"Date":"2024-01-10","ADIZ_count":"2"},{"Date":"2024-01-11","ADIZ_count":"2"},{"Date":"2024-01-12","ADIZ_count":"1"},{"Date":"2024-01-13","ADIZ_count":"0"},{"Date":"2024-01-14","ADIZ_count":"1"},{"Date":"2024-01-15","ADIZ_count":"2"},{"Date":"2024-01-16","ADIZ_count":"2"},{"Date":"2024-01-17","ADIZ_count":"11"},{"Date":"2024-01-18","ADIZ_count":"1"},{"Date":"2024-01-19","ADIZ_count":"2"},{"Date":"2024-01-20","ADIZ_count":"0"},{"Date":"2024-01-21","ADIZ_count":"0"},{"Date":"2024-01-22","ADIZ_count":"1"},{"Date":"2024-01-23","ADIZ_count":"0"},{"Date":"2024-01-24","ADIZ_count":"4"},{"Date":"2024-01-25","ADIZ_count":"2"},{"Date":"2024-01-26","ADIZ_count":"13"},{"Date":"2024-01-27","ADIZ_count":"2"},{"Date":"2024-01-28","ADIZ_count":"1"},{"Date":"2024-01-29","ADIZ_count":"0"},{"Date":"2024-01-30","ADIZ_count":"0"},{"Date":"2024-01-31","ADIZ_count":"14"},{"Date":"2024-02-01","ADIZ_count":"3"},{"Date":"2024-02-02","ADIZ_count":"0"},{"Date":"2024-02-03","ADIZ_count":"1"},{"Date":"2024-02-04","ADIZ_count":"0"},{"Date":"2024-02-05","ADIZ_count":"13"},{"Date":"2024-02-06","ADIZ_count":"0"},{"Date":"2024-02-07","ADIZ_count":"0"},{"Date":"2024-02-08","ADIZ_count":"3"},{"Date":"2024-02-09","ADIZ_count":"2"},{"Date":"2024-02-10","ADIZ_count":"1"},{"Date":"2024-02-11","ADIZ_count":"0"},{"Date":"2024-02-12","ADIZ_count":"1"},{"Date":"2024-02-13","ADIZ_count":"1"},{"Date":"2024-02-14","ADIZ_count":"14"},{"Date":"2024-02-15","ADIZ_count":"1"},{"Date":"2024-02-16","ADIZ_count":"0"},{"Date":"2024-02-17","ADIZ_count":"1"},{"Date":"2024-02-18","ADIZ_count":"1"},{"Date":"2024-02-19","ADIZ_count":"11"},{"Date":"2024-02-20","ADIZ_count":"6"},{"Date":"2024-02-21","ADIZ_count":"5"},{"Date":"2024-02-22","ADIZ_count":"2"},{"Date":"2024-02-23","ADIZ_count":"0"},{"Date":"2024-02-24","ADIZ_count":"0"},{"Date":"2024-02-25","ADIZ_count":"2"},{"Date":"2024-02-26","ADIZ_count":"0"},{"Date":"2024-02-27","ADIZ_count":"3"},{"Date":"2024-02-28","ADIZ_count":"12"},{"Date":"2024-02-29","ADIZ_count":"3"},{"Date":"2024-03-01","ADIZ_count":"4"},{"Date":"2024-03-02","ADIZ_count":"10"},{"Date":"2024-03-03","ADIZ_count":"10"},{"Date":"2024-03-04","ADIZ_count":"2"},{"Date":"2024-03-05","ADIZ_count":"0"},{"Date":"2024-03-06","ADIZ_count":"1"},{"Date":"2024-03-07","ADIZ_count":"1"},{"Date":"2024-03-08","ADIZ_count":"4"},{"Date":"2024-03-09","ADIZ_count":"2"},{"Date":"2024-03-10","ADIZ_count":"0"},{"Date":"2024-03-11","ADIZ_count":"0"},{"Date":"2024-03-12","ADIZ_count":"4"},{"Date":"2024-03-13","ADIZ_count":"18"},{"Date":"2024-03-14","ADIZ_count":"4"},{"Date":"2024-03-15","ADIZ_count":"6"},{"Date":"2024-03-16","ADIZ_count":"1"},{"Date":"2024-03-17","ADIZ_count":"3"},{"Date":"2024-03-18","ADIZ_count":"2"},{"Date":"2024-03-19","ADIZ_count":"6"},{"Date":"2024-03-20","ADIZ_count":"20"},{"Date":"2024-03-21","ADIZ_count":"13"},{"Date":"2024-03-22","ADIZ_count":"4"},{"Date":"2024-03-23","ADIZ_count":"1"},{"Date":"2024-03-24","ADIZ_count":"1"},{"Date":"2024-03-25","ADIZ_count":"3"},{"Date":"2024-03-26","ADIZ_count":"4"},{"Date":"2024-03-27","ADIZ_count":"14"},{"Date":"2024-03-28","ADIZ_count":"1"},{"Date":"2024-03-29","ADIZ_count":"1"},{"Date":"2024-03-30","ADIZ_count":"0"},{"Date":"2024-03-31","ADIZ_count":"0"},{"Date":"2024-04-01","ADIZ_count":"2"},{"Date":"2024-04-02","ADIZ_count":"20"},{"Date":"2024-04-03","ADIZ_count":"0"},{"Date":"2024-04-04","ADIZ_count":"0"},{"Date":"2024-04-05","ADIZ_count":"1"},{"Date":"2024-04-06","ADIZ_count":"0"},{"Date":"2024-04-07","ADIZ_count":"0"},{"Date":"2024-04-08","ADIZ_count":"4"},{"Date":"2024-04-09","ADIZ_count":"6"},{"Date":"2024-04-10","ADIZ_count":"6"},{"Date":"2024-04-11","ADIZ_count":"9"},{"Date":"2024-04-12","ADIZ_count":"12"},{"Date":"2024-04-13","ADIZ_count":"4"},{"Date":"2024-04-14","ADIZ_count":"11"},{"Date":"2024-04-15","ADIZ_count":"8"},{"Date":"2024-04-16","ADIZ_count":"4"},{"Date":"2024-04-17","ADIZ_count":"12"},{"Date":"2024-04-18","ADIZ_count":"5"},{"Date":"2024-04-19","ADIZ_count":"3"},{"Date":"2024-04-20","ADIZ_count":"17"},{"Date":"2024-04-21","ADIZ_count":"8"},{"Date":"2024-04-22","ADIZ_count":"0"},{"Date":"2024-04-23","ADIZ_count":"0"},{"Date":"2024-04-24","ADIZ_count":"7"},{"Date":"2024-04-25","ADIZ_count":"0"},{"Date":"2024-04-26","ADIZ_count":"1"},{"Date":"2024-04-27","ADIZ_count":"12"},{"Date":"2024-04-28","ADIZ_count":"0"},{"Date":"2024-04-29","ADIZ_count":"5"},{"Date":"2024-04-30","ADIZ_count":"0"},{"Date":"2024-05-01","ADIZ_count":"4"},{"Date":"2024-05-02","ADIZ_count":"17"},{"Date":"2024-05-03","ADIZ_count":"0"},{"Date":"2024-05-04","ADIZ_count":"1"},{"Date":"2024-05-05","ADIZ_count":"2"},{"Date":"2024-05-06","ADIZ_count":"4"},{"Date":"2024-05-07","ADIZ_count":"8"},{"Date":"2024-05-08","ADIZ_count":"8"},{"Date":"2024-05-09","ADIZ_count":"4"},{"Date":"2024-05-10","ADIZ_count":"9"},{"Date":"2024-05-11","ADIZ_count":"10"},{"Date":"2024-05-12","ADIZ_count":"2"},{"Date":"2024-05-13","ADIZ_count":"10"},{"Date":"2024-05-14","ADIZ_count":"26"},{"Date":"2024-05-15","ADIZ_count":"19"},{"Date":"2024-05-16","ADIZ_count":"1"},{"Date":"2024-05-17","ADIZ_count":"12"},{"Date":"2024-05-18","ADIZ_count":"0"},{"Date":"2024-05-19","ADIZ_count":"6"},{"Date":"2024-05-20","ADIZ_count":"0"},{"Date":"2024-05-21","ADIZ_count":"0"},{"Date":"2024-05-22","ADIZ_count":"1"},{"Date":"2024-05-23","ADIZ_count":"35"},{"Date":"2024-05-24","ADIZ_count":"47"},{"Date":"2024-05-25","ADIZ_count":"0"},{"Date":"2024-05-26","ADIZ_count":"10"},{"Date":"2024-05-27","ADIZ_count":"3"},{"Date":"2024-05-28","ADIZ_count":"3"},{"Date":"2024-05-29","ADIZ_count":"28"},{"Date":"2024-05-30","ADIZ_count":"11"},{"Date":"2024-05-31","ADIZ_count":"8"},{"Date":"2024-06-01","ADIZ_count":"2"},{"Date":"2024-06-02","ADIZ_count":"0"},{"Date":"2024-06-03","ADIZ_count":"17"},{"Date":"2024-06-04","ADIZ_count":"19"},{"Date":"2024-06-05","ADIZ_count":"1"},{"Date":"2024-06-06","ADIZ_count":"2"},{"Date":"2024-06-07","ADIZ_count":"6"},{"Date":"2024-06-08","ADIZ_count":"5"},{"Date":"2024-06-09","ADIZ_count":"5"},{"Date":"2024-06-10","ADIZ_count":"7"},{"Date":"2024-06-11","ADIZ_count":"9"},{"Date":"2024-06-12","ADIZ_count":"19"},{"Date":"2024-06-13","ADIZ_count":"3"},{"Date":"2024-06-14","ADIZ_count":"7"},{"Date":"2024-06-15","ADIZ_count":"4"},{"Date":"2024-06-16","ADIZ_count":"2"},{"Date":"2024-06-17","ADIZ_count":"12"},{"Date":"2024-06-18","ADIZ_count":"12"},{"Date":"2024-06-19","ADIZ_count":"8"},{"Date":"2024-06-20","ADIZ_count":"34"},{"Date":"2024-06-21","ADIZ_count":"32"},{"Date":"2024-06-22","ADIZ_count":"8"},{"Date":"2024-06-23","ADIZ_count":"19"},{"Date":"2024-06-24","ADIZ_count":"10"},{"Date":"2024-06-25","ADIZ_count":"5"},{"Date":"2024-06-26","ADIZ_count":"33"},{"Date":"2024-06-27","ADIZ_count":"17"},{"Date":"2024-06-28","ADIZ_count":"20"},{"Date":"2024-06-29","ADIZ_count":"5"},{"Date":"2024-06-30","ADIZ_count":"2"},{"Date":"2024-07-01","ADIZ_count":"10"},{"Date":"2024-07-02","ADIZ_count":"20"},{"Date":"2024-07-03","ADIZ_count":"19"},{"Date":"2024-07-04","ADIZ_count":"35"},{"Date":"2024-07-05","ADIZ_count":"23"},{"Date":"2024-07-06","ADIZ_count":"14"},{"Date":"2024-07-07","ADIZ_count":"13"},{"Date":"2024-07-08","ADIZ_count":"14"},{"Date":"2024-07-09","ADIZ_count":"26"},{"Date":"2024-07-10","ADIZ_count":"56"},{"Date":"2024-07-11","ADIZ_count":"14"},{"Date":"2024-07-12","ADIZ_count":"20"},{"Date":"2024-07-13","ADIZ_count":"14"},{"Date":"2024-07-14","ADIZ_count":"8"},{"Date":"2024-07-15","ADIZ_count":"8"},{"Date":"2024-07-16","ADIZ_count":"13"},{"Date":"2024-07-17","ADIZ_count":"10"},{"Date":"2024-07-18","ADIZ_count":"12"},{"Date":"2024-07-19","ADIZ_count":"17"},{"Date":"2024-07-20","ADIZ_count":"15"},{"Date":"2024-07-21","ADIZ_count":"5"},{"Date":"2024-07-22","ADIZ_count":"6"},{"Date":"2024-07-23","ADIZ_count":"12"},{"Date":"2024-07-24","ADIZ_count":"0"},{"Date":"2024-07-25","ADIZ_count":"0"},{"Date":"2024-07-26","ADIZ_count":"0"},{"Date":"2024-07-27","ADIZ_count":"0"},{"Date":"2024-07-28","ADIZ_count":"13"},{"Date":"2024-07-29","ADIZ_count":"7"},{"Date":"2024-07-30","ADIZ_count":"20"},{"Date":"2024-07-31","ADIZ_count":"13"},{"Date":"2024-08-01","ADIZ_count":"14"},{"Date":"2024-08-02","ADIZ_count":"11"},{"Date":"2024-08-03","ADIZ_count":"31"},{"Date":"2024-08-04","ADIZ_count":"6"},{"Date":"2024-08-05","ADIZ_count":"6"},{"Date":"2024-08-06","ADIZ_count":"31"},{"Date":"2024-08-07","ADIZ_count":"17"},{"Date":"2024-08-08","ADIZ_count":"12"},{"Date":"2024-08-09","ADIZ_count":"22"},{"Date":"2024-08-10","ADIZ_count":"3"},{"Date":"2024-08-11","ADIZ_count":"3"},{"Date":"2024-08-12","ADIZ_count":"11"},{"Date":"2024-08-13","ADIZ_count":"19"},{"Date":"2024-08-14","ADIZ_count":"6"},{"Date":"2024-08-15","ADIZ_count":"11"},{"Date":"2024-08-16","ADIZ_count":"12"},{"Date":"2024-08-17","ADIZ_count":"3"},{"Date":"2024-08-18","ADIZ_count":"4"},{"Date":"2024-08-19","ADIZ_count":"1"},{"Date":"2024-08-20","ADIZ_count":"7"},{"Date":"2024-08-21","ADIZ_count":"3"},{"Date":"2024-08-22","ADIZ_count":"32"},{"Date":"2024-08-23","ADIZ_count":"32"},{"Date":"2024-08-24","ADIZ_count":"7"},{"Date":"2024-08-25","ADIZ_count":"6"},{"Date":"2024-08-26","ADIZ_count":"9"},{"Date":"2024-08-27","ADIZ_count":"27"},{"Date":"2024-08-28","ADIZ_count":"10"},{"Date":"2024-08-29","ADIZ_count":"17"},{"Date":"2024-08-30","ADIZ_count":"20"},{"Date":"2024-08-31","ADIZ_count":"6"},{"Date":"2024-09-01","ADIZ_count":"15"},{"Date":"2024-09-02","ADIZ_count":"16"},{"Date":"2024-09-03","ADIZ_count":"7"},{"Date":"2024-09-04","ADIZ_count":"13"},{"Date":"2024-09-05","ADIZ_count":"15"},{"Date":"2024-09-06","ADIZ_count":"1"},{"Date":"2024-09-07","ADIZ_count":"2"},{"Date":"2024-09-08","ADIZ_count":"16"},{"Date":"2024-09-09","ADIZ_count":"12"},{"Date":"2024-09-10","ADIZ_count":"13"},{"Date":"2024-09-11","ADIZ_count":"20"},{"Date":"2024-09-12","ADIZ_count":"18"},{"Date":"2024-09-13","ADIZ_count":"17"},{"Date":"2024-09-14","ADIZ_count":"2"},{"Date":"2024-09-15","ADIZ_count":"0"},{"Date":"2024-09-16","ADIZ_count":"4"},{"Date":"2024-09-17","ADIZ_count":"6"},{"Date":"2024-09-18","ADIZ_count":"15"},{"Date":"2024-09-19","ADIZ_count":"26"},{"Date":"2024-09-20","ADIZ_count":"5"},{"Date":"2024-09-21","ADIZ_count":"3"},{"Date":"2024-09-22","ADIZ_count":"0"},{"Date":"2024-09-23","ADIZ_count":"0"},{"Date":"2024-09-24","ADIZ_count":"2"},{"Date":"2024-09-25","ADIZ_count":"34"},{"Date":"2024-09-26","ADIZ_count":"32"},{"Date":"2024-09-27","ADIZ_count":"10"},{"Date":"2024-09-28","ADIZ_count":"6"},{"Date":"2024-09-29","ADIZ_count":"8"},{"Date":"2024-09-30","ADIZ_count":"4"},{"Date":"2024-10-01","ADIZ_count":"0"},{"Date":"2024-10-02","ADIZ_count":"0"},{"Date":"2024-10-03","ADIZ_count":"0"},{"Date":"2024-10-04","ADIZ_count":"8"},{"Date":"2024-10-05","ADIZ_count":"2"},{"Date":"2024-10-06","ADIZ_count":"19"},{"Date":"2024-10-07","ADIZ_count":"8"},{"Date":"2024-10-08","ADIZ_count":"9"},{"Date":"2024-10-09","ADIZ_count":"15"},{"Date":"2024-10-10","ADIZ_count":"13"},{"Date":"2024-10-11","ADIZ_count":"22"},{"Date":"2024-10-12","ADIZ_count":"9"},{"Date":"2024-10-13","ADIZ_count":"16"},{"Date":"2024-10-14","ADIZ_count":"111"},{"Date":"2024-10-15","ADIZ_count":"13"},{"Date":"2024-10-16","ADIZ_count":"20"},{"Date":"2024-10-17","ADIZ_count":"15"},{"Date":"2024-10-18","ADIZ_count":"0"},{"Date":"2024-10-19","ADIZ_count":"2"},{"Date":"2024-10-20","ADIZ_count":"7"},{"Date":"2024-10-21","ADIZ_count":"11"},{"Date":"2024-10-22","ADIZ_count":"11"},{"Date":"2024-10-23","ADIZ_count":"5"},{"Date":"2024-10-24","ADIZ_count":"2"},{"Date":"2024-10-25","ADIZ_count":"16"},{"Date":"2024-10-26","ADIZ_count":"6"},{"Date":"2024-10-27","ADIZ_count":"17"},{"Date":"2024-10-28","ADIZ_count":"4"},{"Date":"2024-10-29","ADIZ_count":"5"},{"Date":"2024-10-30","ADIZ_count":"4"},{"Date":"2024-10-31","ADIZ_count":"0"},{"Date":"2024-11-01","ADIZ_count":"5"},{"Date":"2024-11-02","ADIZ_count":"14"},{"Date":"2024-11-03","ADIZ_count":"37"},{"Date":"2024-11-04","ADIZ_count":"16"},{"Date":"2024-11-05","ADIZ_count":"9"},{"Date":"2024-11-06","ADIZ_count":"8"},{"Date":"2024-11-07","ADIZ_count":"7"},{"Date":"2024-11-08","ADIZ_count":"9"},{"Date":"2024-11-09","ADIZ_count":"6"},{"Date":"2024-11-10","ADIZ_count":"2"},{"Date":"2024-11-11","ADIZ_count":"8"},{"Date":"2024-11-12","ADIZ_count":"15"},{"Date":"2024-11-13","ADIZ_count":"9"},{"Date":"2024-11-14","ADIZ_count":"4"},{"Date":"2024-11-15","ADIZ_count":"0"},{"Date":"2024-11-16","ADIZ_count":"0"},{"Date":"2024-11-17","ADIZ_count":"2"},{"Date":"2024-11-18","ADIZ_count":"3"},{"Date":"2024-11-19","ADIZ_count":"7"},{"Date":"2024-11-20","ADIZ_count":"9"},{"Date":"2024-11-21","ADIZ_count":"18"},{"Date":"2024-11-22","ADIZ_count":"13"},{"Date":"2024-11-23","ADIZ_count":"6"},{"Date":"2024-11-24","ADIZ_count":"8"},{"Date":"2024-11-25","ADIZ_count":"4"},{"Date":"2024-11-26","ADIZ_count":"10"},{"Date":"2024-11-27","ADIZ_count":"9"},{"Date":"2024-11-28","ADIZ_count":"21"},{"Date":"2024-11-29","ADIZ_count":"7"},{"Date":"2024-11-30","ADIZ_count":"3"},{"Date":"2024-12-01","ADIZ_count":"11"},{"Date":"2024-12-02","ADIZ_count":"10"},{"Date":"2024-12-03","ADIZ_count":"4"},{"Date":"2024-12-04","ADIZ_count":"6"},{"Date":"2024-12-05","ADIZ_count":"7"},{"Date":"2024-12-06","ADIZ_count":"11"},{"Date":"2024-12-07","ADIZ_count":"6"},{"Date":"2024-12-08","ADIZ_count":"6"},{"Date":"2024-12-09","ADIZ_count":"16"},{"Date":"2024-12-10","ADIZ_count":"23"},{"Date":"2024-12-11","ADIZ_count":"22"},{"Date":"2024-12-12","ADIZ_count":"6"},{"Date":"2024-12-13","ADIZ_count":"13"},{"Date":"2024-12-14","ADIZ_count":"2"},{"Date":"2024-12-15","ADIZ_count":"1"},{"Date":"2024-12-16","ADIZ_count":"4"},{"Date":"2024-12-17","ADIZ_count":"2"},{"Date":"2024-12-18","ADIZ_count":"4"},{"Date":"2024-12-19","ADIZ_count":"5"},{"Date":"2024-12-20","ADIZ_count":"6"},{"Date":"2024-12-21","ADIZ_count":"8"},{"Date":"2024-12-22","ADIZ_count":"0"},{"Date":"2024-12-23","ADIZ_count":"6"},{"Date":"2024-12-24","ADIZ_count":"1"},{"Date":"2024-12-25","ADIZ_count":"0"},{"Date":"2024-12-26","ADIZ_count":"5"},{"Date":"2024-12-27","ADIZ_count":"1"},{"Date":"2024-12-28","ADIZ_count":"3"},{"Date":"2024-12-29","ADIZ_count":"16"},{"Date":"2024-12-30","ADIZ_count":"3"},{"Date":"2024-12-31","ADIZ_count":"1"},{"Date":"2025-01-01","ADIZ_count":"3"},{"Date":"2025-01-02","ADIZ_count":"18"},{"Date":"2025-01-03","ADIZ_count":"3"},{"Date":"2025-01-04","ADIZ_count":"4"},{"Date":"2025-01-05","ADIZ_count":"6"},{"Date":"2025-01-06","ADIZ_count":"14"},{"Date":"2025-01-07","ADIZ_count":"19"},{"Date":"2025-01-08","ADIZ_count":"5"},{"Date":"2025-01-09","ADIZ_count":"3"},{"Date":"2025-01-10","ADIZ_count":"4"},{"Date":"2025-01-11","ADIZ_count":"7"},{"Date":"2025-01-12","ADIZ_count":"4"},{"Date":"2025-01-13","ADIZ_count":"5"},{"Date":"2025-01-14","ADIZ_count":"21"},{"Date":"2025-01-15","ADIZ_count":"6"},{"Date":"2025-01-16","ADIZ_count":"11"},{"Date":"2025-01-17","ADIZ_count":"13"},{"Date":"2025-01-18","ADIZ_count":"4"},{"Date":"2025-01-19","ADIZ_count":"3"},{"Date":"2025-01-20","ADIZ_count":"5"},{"Date":"2025-01-21","ADIZ_count":"12"},{"Date":"2025-01-22","ADIZ_count":"27"},{"Date":"2025-01-23","ADIZ_count":"9"},{"Date":"2025-01-24","ADIZ_count":"27"},{"Date":"2025-01-25","ADIZ_count":"2"},{"Date":"2025-01-26","ADIZ_count":"2"},{"Date":"2025-01-27","ADIZ_count":"0"},{"Date":"2025-01-28","ADIZ_count":"3"},{"Date":"2025-01-29","ADIZ_count":"3"},{"Date":"2025-01-30","ADIZ_count":"5"},{"Date":"2025-01-31","ADIZ_count":"0"},{"Date":"2025-02-01","ADIZ_count":"6"},{"Date":"2025-02-02","ADIZ_count":"14"},{"Date":"2025-02-03","ADIZ_count":"4"},{"Date":"2025-02-04","ADIZ_count":"8"},{"Date":"2025-02-05","ADIZ_count":"23"},{"Date":"2025-02-06","ADIZ_count":"9"},{"Date":"2025-02-07","ADIZ_count":"9"},{"Date":"2025-02-08","ADIZ_count":"9"},{"Date":"2025-02-09","ADIZ_count":"3"},{"Date":"2025-02-10","ADIZ_count":"22"},{"Date":"2025-02-11","ADIZ_count":"23"},{"Date":"2025-02-12","ADIZ_count":"4"},{"Date":"2025-02-13","ADIZ_count":"1"},{"Date":"2025-02-14","ADIZ_count":"15"},{"Date":"2025-02-15","ADIZ_count":"2"},{"Date":"2025-02-16","ADIZ_count":"28"},{"Date":"2025-02-17","ADIZ_count":"4"},{"Date":"2025-02-18","ADIZ_count":"33"},{"Date":"2025-02-19","ADIZ_count":"29"},{"Date":"2025-02-20","ADIZ_count":"25"},{"Date":"2025-02-21","ADIZ_count":"3"},{"Date":"2025-02-22","ADIZ_count":"11"},{"Date":"2025-02-23","ADIZ_count":"3"},{"Date":"2025-02-24","ADIZ_count":"10"},{"Date":"2025-02-25","ADIZ_count":"9"},{"Date":"2025-02-26","ADIZ_count":"34"},{"Date":"2025-02-27","ADIZ_count":"6"},{"Date":"2025-02-28","ADIZ_count":"15"},{"Date":"2025-03-01","ADIZ_count":"5"},{"Date":"2025-03-02","ADIZ_count":"9"},{"Date":"2025-03-03","ADIZ_count":"11"},{"Date":"2025-03-04","ADIZ_count":"2"},{"Date":"2025-03-05","ADIZ_count":"0"},{"Date":"2025-03-06","ADIZ_count":"4"},{"Date":"2025-03-07","ADIZ_count":"0"},{"Date":"2025-03-08","ADIZ_count":"7"},{"Date":"2025-03-09","ADIZ_count":"9"},{"Date":"2025-03-10","ADIZ_count":"8"},{"Date":"2025-03-11","ADIZ_count":"5"},{"Date":"2025-03-12","ADIZ_count":"11"},{"Date":"2025-03-13","ADIZ_count":"9"},{"Date":"2025-03-14","ADIZ_count":"3"},{"Date":"2025-03-15","ADIZ_count":"1"},{"Date":"2025-03-16","ADIZ_count":"7"},{"Date":"2025-03-17","ADIZ_count":"43"},{"Date":"2025-03-18","ADIZ_count":"6"},{"Date":"2025-03-19","ADIZ_count":"20"},{"Date":"2025-03-20","ADIZ_count":"13"},{"Date":"2025-03-21","ADIZ_count":"41"},{"Date":"2025-03-22","ADIZ_count":"11"},{"Date":"2025-03-23","ADIZ_count":"7"},{"Date":"2025-03-24","ADIZ_count":"20"},{"Date":"2025-03-25","ADIZ_count":"25"},{"Date":"2025-03-26","ADIZ_count":"12"},{"Date":"2025-03-27","ADIZ_count":"20"},{"Date":"2025-03-28","ADIZ_count":"1"},{"Date":"2025-03-29","ADIZ_count":"1"},{"Date":"2025-03-30","ADIZ_count":"0"},{"Date":"2025-03-31","ADIZ_count":"0"},{"Date":"2025-04-01","ADIZ_count":"37"},{"Date":"2025-04-02","ADIZ_count":"31"},{"Date":"2025-04-03","ADIZ_count":"15"},{"Date":"2025-04-04","ADIZ_count":"9"},{"Date":"2025-04-05","ADIZ_count":"5"},{"Date":"2025-04-06","ADIZ_count":"2"},{"Date":"2025-04-07","ADIZ_count":"15"},{"Date":"2025-04-08","ADIZ_count":"18"},{"Date":"2025-04-09","ADIZ_count":"9"},{"Date":"2025-04-10","ADIZ_count":"2"},{"Date":"2025-04-11","ADIZ_count":"19"},{"Date":"2025-04-12","ADIZ_count":"0"},{"Date":"2025-04-13","ADIZ_count":"2"},{"Date":"2025-04-14","ADIZ_count":"6"},{"Date":"2025-04-15","ADIZ_count":"11"},{"Date":"2025-04-16","ADIZ_count":"14"},{"Date":"2025-04-17","ADIZ_count":"7"},{"Date":"2025-04-18","ADIZ_count":"13"},{"Date":"2025-04-19","ADIZ_count":"1"},{"Date":"2025-04-20","ADIZ_count":"1"},{"Date":"2025-04-21","ADIZ_count":"9"},{"Date":"2025-04-22","ADIZ_count":"25"},{"Date":"2025-04-23","ADIZ_count":"14"},{"Date":"2025-04-24","ADIZ_count":"9"},{"Date":"2025-04-25","ADIZ_count":"1"},{"Date":"2025-04-26","ADIZ_count":"1"},{"Date":"2025-04-27","ADIZ_count":"16"},{"Date":"2025-04-28","ADIZ_count":"27"},{"Date":"2025-04-29","ADIZ_count":"18"},{"Date":"2025-04-30","ADIZ_count":"27"},{"Date":"2025-05-01","ADIZ_count":"1"},{"Date":"2025-05-02","ADIZ_count":"7"},{"Date":"2025-05-03","ADIZ_count":"6"},{"Date":"2025-05-04","ADIZ_count":"4"},{"Date":"2025-05-05","ADIZ_count":"12"},{"Date":"2025-05-06","ADIZ_count":"3"},{"Date":"2025-05-07","ADIZ_count":"1"},{"Date":"2025-05-08","ADIZ_count":"12"},{"Date":"2025-05-09","ADIZ_count":"4"},{"Date":"2025-05-10","ADIZ_count":"0"},{"Date":"2025-05-11","ADIZ_count":"17"},{"Date":"2025-05-12","ADIZ_count":"30"},{"Date":"2025-05-13","ADIZ_count":"25"},{"Date":"2025-05-14","ADIZ_count":"18"},{"Date":"2025-05-15","ADIZ_count":"21"},{"Date":"2025-05-16","ADIZ_count":"10"},{"Date":"2025-05-17","ADIZ_count":"13"},{"Date":"2025-05-18","ADIZ_count":"16"},{"Date":"2025-05-19","ADIZ_count":"6"},{"Date":"2025-05-20","ADIZ_count":"15"},{"Date":"2025-05-21","ADIZ_count":"16"},{"Date":"2025-05-22","ADIZ_count":"18"},{"Date":"2025-05-23","ADIZ_count":"6"},{"Date":"2025-05-24","ADIZ_count":"1"},{"Date":"2025-05-25","ADIZ_count":"0"},{"Date":"2025-05-26","ADIZ_count":"34"},{"Date":"2025-05-27","ADIZ_count":"22"},{"Date":"2025-05-28","ADIZ_count":"0"},{"Date":"2025-05-29","ADIZ_count":"7"},{"Date":"2025-05-30","ADIZ_count":"10"},{"Date":"2025-05-31","ADIZ_count":"4"},{"Date":"2025-06-01","ADIZ_count":"0"},{"Date":"2025-06-02","ADIZ_count":"1"},{"Date":"2025-06-03","ADIZ_count":"2"},{"Date":"2025-06-04","ADIZ_count":"18"},{"Date":"2025-06-05","ADIZ_count":"35"},{"Date":"2025-06-06","ADIZ_count":"25"},{"Date":"2025-06-07","ADIZ_count":"6"},{"Date":"2025-06-08","ADIZ_count":"5"},{"Date":"2025-06-09","ADIZ_count":"14"},{"Date":"2025-06-10","ADIZ_count":"25"},{"Date":"2025-06-11","ADIZ_count":"8"},{"Date":"2025-06-12","ADIZ_count":"9"},{"Date":"2025-06-13","ADIZ_count":"0"},{"Date":"2025-06-14","ADIZ_count":"0"},{"Date":"2025-06-15","ADIZ_count":"0"},{"Date":"2025-06-16","ADIZ_count":"9"},{"Date":"2025-06-17","ADIZ_count":"4"},{"Date":"2025-06-18","ADIZ_count":"19"},{"Date":"2025-06-19","ADIZ_count":"46"},{"Date":"2025-06-20","ADIZ_count":"27"},{"Date":"2025-06-21","ADIZ_count":"8"},{"Date":"2025-06-22","ADIZ_count":"3"},{"Date":"2025-06-23","ADIZ_count":"10"},{"Date":"2025-06-24","ADIZ_count":"34"},{"Date":"2025-06-25","ADIZ_count":"24"},{"Date":"2025-06-26","ADIZ_count":"17"},{"Date":"2025-06-27","ADIZ_count":"3"},{"Date":"2025-06-28","ADIZ_count":"0"},{"Date":"2025-06-29","ADIZ_count":"3"},{"Date":"2025-06-30","ADIZ_count":"1"},{"Date":"2025-07-01","ADIZ_count":"37"},{"Date":"2025-07-02","ADIZ_count":"30"},{"Date":"2025-07-03","ADIZ_count":"27"},{"Date":"2025-07-04","ADIZ_count":"12"},{"Date":"2025-07-05","ADIZ_count":"0"},{"Date":"2025-07-06","ADIZ_count":"0"},{"Date":"2025-07-07","ADIZ_count":"0"},{"Date":"2025-07-08","ADIZ_count":"24"},{"Date":"2025-07-09","ADIZ_count":"10"},{"Date":"2025-07-10","ADIZ_count":"1"},{"Date":"2025-07-11","ADIZ_count":"9"},{"Date":"2025-07-12","ADIZ_count":"9"},{"Date":"2025-07-13","ADIZ_count":"7"},{"Date":"2025-07-14","ADIZ_count":"21"},{"Date":"2025-07-15","ADIZ_count":"6"},{"Date":"2025-07-16","ADIZ_count":"45"},{"Date":"2025-07-17","ADIZ_count":"7"},{"Date":"2025-07-18","ADIZ_count":"15"},{"Date":"2025-07-19","ADIZ_count":"0"},{"Date":"2025-07-20","ADIZ_count":"1"},{"Date":"2025-07-21","ADIZ_count":"0"},{"Date":"2025-07-22","ADIZ_count":"2"},{"Date":"2025-07-23","ADIZ_count":"36"},{"Date":"2025-07-24","ADIZ_count":"24"},{"Date":"2025-07-25","ADIZ_count":"8"},{"Date":"2025-07-26","ADIZ_count":"4"},{"Date":"2025-07-27","ADIZ_count":"4"},{"Date":"2025-07-28","ADIZ_count":"1"},{"Date":"2025-07-29","ADIZ_count":"10"},{"Date":"2025-07-30","ADIZ_count":"26"},{"Date":"2025-07-31","ADIZ_count":"16"},{"Date":"2025-08-01","ADIZ_count":"4"},{"Date":"2025-08-02","ADIZ_count":"0"},{"Date":"2025-08-03","ADIZ_count":"4"},{"Date":"2025-08-04","ADIZ_count":"8"},{"Date":"2025-08-05","ADIZ_count":"8"},{"Date":"2025-08-06","ADIZ_count":"14"},{"Date":"2025-08-07","ADIZ_count":"38"},{"Date":"2025-08-08","ADIZ_count":"47"},{"Date":"2025-08-09","ADIZ_count":"6"},{"Date":"2025-08-10","ADIZ_count":"8"},{"Date":"2025-08-11","ADIZ_count":"8"},{"Date":"2025-08-12","ADIZ_count":"6"},{"Date":"2025-08-13","ADIZ_count":"8"},{"Date":"2025-08-14","ADIZ_count":"2"},{"Date":"2025-08-15","ADIZ_count":"13"},{"Date":"2025-08-16","ADIZ_count":"2"},{"Date":"2025-08-17","ADIZ_count":"3"},{"Date":"2025-08-18","ADIZ_count":"2"},{"Date":"2025-08-19","ADIZ_count":"17"},{"Date":"2025-08-20","ADIZ_count":"15"},{"Date":"2025-08-21","ADIZ_count":"9"},{"Date":"2025-08-22","ADIZ_count":"18"},{"Date":"2025-08-23","ADIZ_count":"0"},{"Date":"2025-08-24","ADIZ_count":"5"},{"Date":"2025-08-25","ADIZ_count":"1"},{"Date":"2025-08-26","ADIZ_count":"16"},{"Date":"2025-08-27","ADIZ_count":"24"},{"Date":"2025-08-28","ADIZ_count":"16"},{"Date":"2025-08-29","ADIZ_count":"11"},{"Date":"2025-08-30","ADIZ_count":"2"},{"Date":"2025-08-31","ADIZ_count":"2"},{"Date":"2025-09-01","ADIZ_count":"1"},{"Date":"2025-09-02","ADIZ_count":"1"},{"Date":"2025-09-03","ADIZ_count":"2"},{"Date":"2025-09-04","ADIZ_count":"9"},{"Date":"2025-09-05","ADIZ_count":"24"},{"Date":"2025-09-06","ADIZ_count":"12"},{"Date":"2025-09-07","ADIZ_count":"14"},{"Date":"2025-09-08","ADIZ_count":"2"},{"Date":"2025-09-09","ADIZ_count":"13"},{"Date":"2025-09-10","ADIZ_count":"14"},{"Date":"2025-09-11","ADIZ_count":"15"},{"Date":"2025-09-12","ADIZ_count":"25"},{"Date":"2025-09-13","ADIZ_count":"26"},{"Date":"2025-09-14","ADIZ_count":"23"},{"Date":"2025-09-15","ADIZ_count":"15"},{"Date":"2025-09-16","ADIZ_count":"26"},{"Date":"2025-09-17","ADIZ_count":"3"},{"Date":"2025-09-18","ADIZ_count":"8"},{"Date":"2025-09-19","ADIZ_count":"3"},{"Date":"2025-09-20","ADIZ_count":"0"},{"Date":"2025-09-21","ADIZ_count":"0"},{"Date":"2025-09-22","ADIZ_count":"11"},{"Date":"2025-09-23","ADIZ_count":"0"},{"Date":"2025-09-24","ADIZ_count":"1"},{"Date":"2025-09-25","ADIZ_count":"9"},{"Date":"2025-09-26","ADIZ_count":"15"},{"Date":"2025-09-27","ADIZ_count":"5"},{"Date":"2025-09-28","ADIZ_count":"6"},{"Date":"2025-09-29","ADIZ_count":"23"},{"Date":"2025-09-30","ADIZ_count":"7"},{"Date":"2025-10-01","ADIZ_count":"8"},{"Date":"2025-10-02","ADIZ_count":"1"},{"Date":"2025-10-03","ADIZ_count":"5"},{"Date":"2025-10-04","ADIZ_count":"2"},{"Date":"2025-10-05","ADIZ_count":"7"},{"Date":"2025-10-06","ADIZ_count":"0"},{"Date":"2025-10-07","ADIZ_count":"18"},{"Date":"2025-10-08","ADIZ_count":"6"},{"Date":"2025-10-09","ADIZ_count":"4"},{"Date":"2025-10-10","ADIZ_count":"3"},{"Date":"2025-10-11","ADIZ_count":"13"},{"Date":"2025-10-12","ADIZ_count":"8"},{"Date":"2025-10-13","ADIZ_count":"8"},{"Date":"2025-10-14","ADIZ_count":"14"},{"Date":"2025-10-15","ADIZ_count":"21"},{"Date":"2025-10-16","ADIZ_count":"18"},{"Date":"2025-10-17","ADIZ_count":"19"},{"Date":"2025-10-18","ADIZ_count":"0"},{"Date":"2025-10-19","ADIZ_count":"1"},{"Date":"2025-10-20","ADIZ_count":"0"},{"Date":"2025-10-21","ADIZ_count":"2"},{"Date":"2025-10-22","ADIZ_count":"1"},{"Date":"2025-10-23","ADIZ_count":"9"},{"Date":"2025-10-24","ADIZ_count":"9"},{"Date":"2025-10-25","ADIZ_count":"5"},{"Date":"2025-10-26","ADIZ_count":"2"},{"Date":"2025-10-27","ADIZ_count":"8"},{"Date":"2025-10-28","ADIZ_count":"23"},{"Date":"2025-10-29","ADIZ_count":"1"},{"Date":"2025-10-30","ADIZ_count":"3"},{"Date":"2025-10-31","ADIZ_count":"3"},{"Date":"2025-11-01","ADIZ_count":"3"},{"Date":"2025-11-02","ADIZ_count":"1"},{"Date":"2025-11-03","ADIZ_count":"2"},{"Date":"2025-11-04","ADIZ_count":"0"},{"Date":"2025-11-05","ADIZ_count":"12"},{"Date":"2025-11-06","ADIZ_count":"31"},{"Date":"2025-11-07","ADIZ_count":"10"},{"Date":"2025-11-08","ADIZ_count":"4"},{"Date":"2025-11-09","ADIZ_count":"2"},{"Date":"2025-11-10","ADIZ_count":"1"},{"Date":"2025-11-11","ADIZ_count":"0"},{"Date":"2025-11-12","ADIZ_count":"0"},{"Date":"2025-11-13","ADIZ_count":"18"},{"Date":"2025-11-14","ADIZ_count":"17"},{"Date":"2025-11-15","ADIZ_count":"17"},{"Date":"2025-11-16","ADIZ_count":"2"},{"Date":"2025-11-17","ADIZ_count":"7"},{"Date":"2025-11-18","ADIZ_count":"7"},{"Date":"2025-11-19","ADIZ_count":"13"},{"Date":"2025-11-20","ADIZ_count":"17"},{"Date":"2025-11-21","ADIZ_count":"12"},{"Date":"2025-11-22","ADIZ_count":"6"},{"Date":"2025-11-23","ADIZ_count":"6"},{"Date":"2025-11-24","ADIZ_count":"3"},{"Date":"2025-11-25","ADIZ_count":"14"},{"Date":"2025-11-26","ADIZ_count":"10"},{"Date":"2025-11-27","ADIZ_count":"0"},{"Date":"2025-11-28","ADIZ_count":"23"},{"Date":"2025-11-29","ADIZ_count":"25"},{"Date":"2025-11-30","ADIZ_count":"3"},{"Date":"2025-12-01","ADIZ_count":"1"},{"Date":"2025-12-02","ADIZ_count":"4"},{"Date":"2025-12-03","ADIZ_count":"2"},{"Date":"2025-12-04","ADIZ_count":"8"},{"Date":"2025-12-05","ADIZ_count":"19"},{"Date":"2025-12-06","ADIZ_count":"0"},{"Date":"2025-12-07","ADIZ_count":"2"},{"Date":"2025-12-08","ADIZ_count":"2"},{"Date":"2025-12-09","ADIZ_count":"2"},{"Date":"2025-12-10","ADIZ_count":"15"},{"Date":"2025-12-11","ADIZ_count":"23"},{"Date":"2025-12-12","ADIZ_count":"4"},{"Date":"2025-12-13","ADIZ_count":"0"},{"Date":"2025-12-14","ADIZ_count":"1"},{"Date":"2025-12-15","ADIZ_count":"6"},{"Date":"2025-12-16","ADIZ_count":"5"},{"Date":"2025-12-17","ADIZ_count":"23"},{"Date":"2025-12-18","ADIZ_count":"0"},{"Date":"2025-12-19","ADIZ_count":"0"},{"Date":"2025-12-20","ADIZ_count":"5"},{"Date":"2025-12-21","ADIZ_count":"0"},{"Date":"2025-12-22","ADIZ_count":"2"},{"Date":"2025-12-23","ADIZ_count":"1"},{"Date":"2025-12-24","ADIZ_count":"2"},{"Date":"2025-12-25","ADIZ_count":"0"},{"Date":"2025-12-26","ADIZ_count":"12"},{"Date":"2025-12-27","ADIZ_count":"3"},{"Date":"2025-12-28","ADIZ_count":"0"},{"Date":"2025-12-29","ADIZ_count":"90"},{"Date":"2025-12-30","ADIZ_count":"0"},{"Date":"2025-12-31","ADIZ_count":"0"}],"arms_sales":[{"date":"2025-11-13","case_id":"20251113_Non_Standard_Spare_Repair_Parts","actor":"USA","weapon_sale":"Non-Standard Spare & Repair Parts \u2014 Aircraft support (~$330M) dsca.mil","dime":"Economic/Military","value_display":"$330M","value_tier":"Small ($100\u2013499M)","value_usd":"330000000.0","domain":"Air","capability_function":"Sustainment / Spares / Logistics","package_type":"Sustainment / Readiness","lethality_type":"Non-kinetic enabling","date_type":"DSCA notification (CN posting)","us_administration":"Trump II (2025-Present)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"DSCA"},{"date":"2025-12-17","case_id":"20251217_Tactical_Mission_Network_Software","actor":"USA","weapon_sale":"Tactical Mission Network Software (~$1.01B) dsca.mil","dime":"Economic/Military","value_display":"$1.01B","value_tier":"Medium ($500M\u2013$1.99B)","value_usd":"1010000000.0","domain":"C4ISR","capability_function":"C2 / Networks / Data Links","package_type":"New Capability","lethality_type":"Non-kinetic enabling","date_type":"DSCA notification (CN posting)","us_administration":"Trump II (2025-Present)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"DSCA"},{"date":"2025-12-17","case_id":"20251217_AH_1W_Helicopter_Parts","actor":"USA","weapon_sale":"AH-1W Helicopter Parts (~$96M) dsca.mil","dime":"Economic/Military","value_display":"$96M","value_tier":"Micro (<$100M)","value_usd":"96000000.0","domain":"Air","capability_function":"Other/Unknown","package_type":"New Capability","lethality_type":"Non-kinetic enabling","date_type":"DSCA notification (CN posting)","us_administration":"Trump II (2025-Present)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"DSCA"},{"date":"2025-12-17","case_id":"20251217_M109A7_Howitzers","actor":"USA","weapon_sale":"M109A7 Howitzers (~$4.03B) dsca.mil","dime":"Economic/Military","value_display":"$4.03B","value_tier":"Major ($2\u2013$4.99B)","value_usd":"4030000000.0","domain":"Land","capability_function":"Strike / Fires","package_type":"New Capability","lethality_type":"Kinetic effects","date_type":"DSCA notification (CN posting)","us_administration":"Trump II (2025-Present)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"DSCA"},{"date":"2025-12-17","case_id":"20251217_HIMARS_Related_Munitions","actor":"USA","weapon_sale":"HIMARS & Related Munitions (~$4.05B) dsca.mil","dime":"Economic/Military","value_display":"$4.05B","value_tier":"Major ($2\u2013$4.99B)","value_usd":"4050000000.0","domain":"Land","capability_function":"Strike / Fires","package_type":"New Capability","lethality_type":"Kinetic effects","date_type":"DSCA notification (CN posting)","us_administration":"Trump II (2025-Present)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"DSCA"},{"date":"2025-12-17","case_id":"20251217_TOW_Missile_Systems","actor":"USA","weapon_sale":"TOW Missile Systems (~$353M) dsca.mil","dime":"Economic/Military","value_display":"$353M","value_tier":"Small ($100\u2013499M)","value_usd":"353000000.0","domain":"Land","capability_function":"Strike / Fires","package_type":"New Capability","lethality_type":"Kinetic effects","date_type":"DSCA notification (CN posting)","us_administration":"Trump II (2025-Present)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"DSCA"},{"date":"2025-12-17","case_id":"20251217_Javelin_Missile_Systems","actor":"USA","weapon_sale":"Javelin Missile Systems (~$375M) dsca.mil","dime":"Economic/Military","value_display":"$375M","value_tier":"Small ($100\u2013499M)","value_usd":"375000000.0","domain":"Land","capability_function":"Strike / Fires","package_type":"New Capability","lethality_type":"Kinetic effects","date_type":"DSCA notification (CN posting)","us_administration":"Trump II (2025-Present)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"DSCA"},{"date":"2025-12-17","case_id":"20251217_Harpoon_Missile_Support","actor":"USA","weapon_sale":"Harpoon Missile Support (~$91.4M) dsca.mil","dime":"Economic/Military","value_display":"$91.4M","value_tier":"Micro (<$100M)","value_usd":"91400000.0","domain":"Maritime","capability_function":"Anti-Ship / Sea Denial","package_type":"Sustainment / Readiness","lethality_type":"Non-kinetic enabling","date_type":"DSCA notification (CN posting)","us_administration":"Trump II (2025-Present)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"DSCA"},{"date":"2025-12-17","case_id":"20251217_ALTIUS_UAV_Systems","actor":"USA","weapon_sale":"ALTIUS UAV Systems (~$1.1B) dsca.mil","dime":"Economic/Military","value_display":"$1.1B","value_tier":"Medium ($500M\u2013$1.99B)","value_usd":"1100000000.0","domain":"Air","capability_function":"Other/Unknown","package_type":"New Capability","lethality_type":"Kinetic effects","date_type":"DSCA notification (CN posting)","us_administration":"Trump II (2025-Present)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"DSCA"},{"date":"2025-12-20","case_id":"20251220_11_1_Billion_Arms_Sale","actor":"USA","weapon_sale":"11.1 Billion Arms Sale","dime":"Economic/Military","value_display":"$11.1B","value_tier":"Mega (\u2265$5B)","value_usd":"11100000000.0","domain":"Other/Unknown","capability_function":"Other/Unknown","package_type":"New Capability","lethality_type":"Non-kinetic enabling","date_type":"DSCA notification (CN posting)","us_administration":"Trump II (2025-Present)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"nan"},{"date":"2020-05-20","case_id":"20200520_18_MK_48_Mod6_Advanced_Technology","actor":"USA","weapon_sale":"] 18 MK-48 Mod6 Advanced Technology (AT) Heavy Weight Torpedoes (HWT) 180,000,000 Announced","dime":"Economic/Military","value_display":"$18M","value_tier":"Micro (<$100M)","value_usd":"18000000.0","domain":"Maritime","capability_function":"Anti-Ship / Sea Denial","package_type":"New Capability","lethality_type":"Kinetic effects","date_type":"DSCA notification (CN posting)","us_administration":"Trump (2017\u20132021)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"nan"},{"date":"2020-07-09","case_id":"20200709_","actor":"USA","weapon_sale":"|Repair & Recertification of PAC-3 Missiles 620,000,000 Announced","dime":"Economic/Military","value_display":"$3M","value_tier":"Micro (<$100M)","value_usd":"3000000.0","domain":"Other/Unknown","capability_function":"Sustainment / Spares / Logistics","package_type":"Sustainment / Readiness","lethality_type":"Non-kinetic enabling","date_type":"DSCA notification (CN posting)","us_administration":"Trump (2017\u20132021)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"nan"},{"date":"2020-10-21","case_id":"20201021_","actor":"USA","weapon_sale":"|AGM-84H Standoff Land Attack Missile-Expanded Response (SLAM-ER) Missiles 1,008,000,000 wip.","dime":"Economic/Military","value_display":"$1.01B","value_tier":"Medium ($500M\u2013$1.99B)","value_usd":"1008000000.0","domain":"Air","capability_function":"Strike / Fires","package_type":"New Capability","lethality_type":"Kinetic effects","date_type":"DSCA notification (CN posting)","us_administration":"Trump (2017\u20132021)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"nan"},{"date":"2020-10-21","case_id":"20201021_","actor":"USA","weapon_sale":"|M142 HIMARS Missile Launchers, Support, and Equipment 436,100,000 wiP","dime":"Economic/Military","value_display":"$436M","value_tier":"Small ($100\u2013499M)","value_usd":"436100000.0","domain":"Land","capability_function":"Strike / Fires","package_type":"Sustainment / Readiness","lethality_type":"Non-kinetic enabling","date_type":"DSCA notification (CN posting)","us_administration":"Trump (2017\u20132021)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"nan"},{"date":"2020-10-21","case_id":"20201021_","actor":"USA","weapon_sale":"|MS-110 Recce Pod System 367,200,000 WIP","dime":"Economic/Military","value_display":"$367M","value_tier":"Small ($100\u2013499M)","value_usd":"367200000.0","domain":"Air","capability_function":"ISR / Targeting","package_type":"New Capability","lethality_type":"Non-kinetic enabling","date_type":"DSCA notification (CN posting)","us_administration":"Trump (2017\u20132021)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"nan"},{"date":"2020-10-26","case_id":"20201026_","actor":"USA","weapon_sale":"| Mobile Coastal Defense Systems with RGM-84L-4 Harpoon Block II Missiles 2,370,000,000 wiP","dime":"Economic/Military","value_display":"$2.37B","value_tier":"Major ($2\u2013$4.99B)","value_usd":"2370000000.0","domain":"Maritime","capability_function":"Anti-Ship / Sea Denial","package_type":"New Capability","lethality_type":"Kinetic effects","date_type":"DSCA notification (CN posting)","us_administration":"Trump (2017\u20132021)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"nan"},{"date":"2020-11-03","case_id":"20201103_","actor":"USA","weapon_sale":"|4 Weapons-Ready MQ-9B Remotely Piloted Aircraft 600,000,000 WIP","dime":"Economic/Military","value_display":"$9B","value_tier":"Mega (\u2265$5B)","value_usd":"9000000000.0","domain":"Air","capability_function":"Other/Unknown","package_type":"New Capability","lethality_type":"Kinetic effects","date_type":"DSCA notification (CN posting)","us_administration":"Trump (2017\u20132021)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"nan"},{"date":"2020-12-07","case_id":"20201207_Field_Information_Communications_System","actor":"USA","weapon_sale":"Field Information Communications System (FICS) 280,000,000 Announced","dime":"Economic/Military","value_display":"$280M","value_tier":"Small ($100\u2013499M)","value_usd":"280000000.0","domain":"C4ISR","capability_function":"C2 / Networks / Data Links","package_type":"New Capability","lethality_type":"Non-kinetic enabling","date_type":"DSCA notification (CN posting)","us_administration":"Trump (2017\u20132021)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"nan"},{"date":"2021-08-04","case_id":"20210804_40_155mm_M109A6_Paladin_Medium_Self_Prop","actor":"USA","weapon_sale":"40 155mm M109A6 Paladin Medium Self-Propelled Howitzer Systems","dime":"Economic/Military","value_display":"$155M","value_tier":"Small ($100\u2013499M)","value_usd":"155000000.0","domain":"Land","capability_function":"Strike / Fires","package_type":"New Capability","lethality_type":"Kinetic effects","date_type":"DSCA notification (CN posting)","us_administration":"Biden (2021\u20132025)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"nan"},{"date":"2022-02-07","case_id":"20220207_Participation_in_the_Patriot_Internation","actor":"USA","weapon_sale":"Participation in the Patriot International Engineering Services Program (IESP) and Field Surveillance Program","dime":"Economic/Military","value_display":"$100M","value_tier":"Small ($100\u2013499M)","value_usd":"100000000.0","domain":"IAMD","capability_function":"Air & Missile Defense","package_type":"New Capability","lethality_type":"Defensive intercept / protection","date_type":"DSCA notification (CN posting)","us_administration":"Biden (2021\u20132025)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"nan"},{"date":"2022-04-05","case_id":"20220405_Patriot_Contractor_Technical_Assistance","actor":"USA","weapon_sale":"Patriot Contractor Technical Assistance","dime":"Economic/Military","value_display":"$100M","value_tier":"Small ($100\u2013499M)","value_usd":"100000000.0","domain":"IAMD","capability_function":"Air & Missile Defense","package_type":"Sustainment / Readiness","lethality_type":"Defensive intercept / protection","date_type":"DSCA notification (CN posting)","us_administration":"Biden (2021\u20132025)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"nan"},{"date":"2022-06-08","case_id":"20220608_Ship_Spare_Parts_and_Ship_System_Spare_P","actor":"USA","weapon_sale":"Ship Spare Parts and Ship System Spare Parts","dime":"Economic/Military","value_display":"$120M","value_tier":"Small ($100\u2013499M)","value_usd":"120000000.0","domain":"Maritime","capability_function":"Anti-Ship / Sea Denial","package_type":"Sustainment / Readiness","lethality_type":"Non-kinetic enabling","date_type":"DSCA notification (CN posting)","us_administration":"Biden (2021\u20132025)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"nan"},{"date":"2022-07-15","case_id":"20220715_Contractor_Technical_Assistance_Support","actor":"USA","weapon_sale":"Contractor Technical Assistance Support","dime":"Economic/Military","value_display":"$108M","value_tier":"Small ($100\u2013499M)","value_usd":"108000000.0","domain":"Other/Unknown","capability_function":"Sustainment / Spares / Logistics","package_type":"Sustainment / Readiness","lethality_type":"Non-kinetic enabling","date_type":"DSCA notification (CN posting)","us_administration":"Biden (2021\u20132025)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"nan"},{"date":"2022-09-02","case_id":"20220902_100_AIM_9X_Block_II_Sidewinder_Missiles","actor":"USA","weapon_sale":"100 AIM-9X Block II Sidewinder Missiles, 4 AIM-9X Block II tactical Guidance Units, and support","dime":"Economic/Military","value_display":"$85.6M","value_tier":"Micro (<$100M)","value_usd":"85600000.0","domain":"Air","capability_function":"Strike / Fires","package_type":"Sustainment / Readiness","lethality_type":"Non-kinetic enabling","date_type":"DSCA notification (CN posting)","us_administration":"Biden (2021\u20132025)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"nan"},{"date":"2022-09-02","case_id":"20220902_60_AGM_84L_1_Harpoon_Block_II_Missiles_4","actor":"USA","weapon_sale":"60 AGM-84L-1 Harpoon Block II Missiles, 4 ATM-84L-1 Harpoon Block II exercise missiles, and support","dime":"Economic/Military","value_display":"$355M","value_tier":"Small ($100\u2013499M)","value_usd":"355000000.0","domain":"Maritime","capability_function":"Anti-Ship / Sea Denial","package_type":"Sustainment / Readiness","lethality_type":"Non-kinetic enabling","date_type":"DSCA notification (CN posting)","us_administration":"Biden (2021\u20132025)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"nan"},{"date":"2022-09-02","case_id":"20220902_Follow_on_Contractor_Logistics_Support","actor":"USA","weapon_sale":"Follow-on Contractor Logistics Support (CLS) for the Surveillance Radar Program (SRP) and related support","dime":"Economic/Military","value_display":"$355M","value_tier":"Small ($100\u2013499M)","value_usd":"355000000.0","domain":"Other/Unknown","capability_function":"ISR / Targeting","package_type":"Sustainment / Readiness","lethality_type":"Defensive intercept / protection","date_type":"DSCA notification (CN posting)","us_administration":"Biden (2021\u20132025)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"nan"},{"date":"2022-12-06","case_id":"20221206_Aircraft_non_standard_spare_parts_and_re","actor":"USA","weapon_sale":"Aircraft non-standard spare parts and related equipment","dime":"Economic/Military","value_display":"$98M","value_tier":"Micro (<$100M)","value_usd":"98000000.0","domain":"Air","capability_function":"Sustainment / Spares / Logistics","package_type":"Sustainment / Readiness","lethality_type":"Non-kinetic enabling","date_type":"DSCA notification (CN posting)","us_administration":"Biden (2021\u20132025)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"nan"},{"date":"2022-12-06","case_id":"20221206_Aircraft_standard_spare_parts_and_relate","actor":"USA","weapon_sale":"Aircraft standard spare parts and related equipment","dime":"Economic/Military","value_display":"$330M","value_tier":"Small ($100\u2013499M)","value_usd":"330000000.0","domain":"Air","capability_function":"Sustainment / Spares / Logistics","package_type":"Sustainment / Readiness","lethality_type":"Non-kinetic enabling","date_type":"DSCA notification (CN posting)","us_administration":"Biden (2021\u20132025)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"nan"},{"date":"2022-12-28","case_id":"20221228_Volcano_anti_tank_munition_laying_system","actor":"USA","weapon_sale":"Volcano anti-tank munition-laying systems","dime":"Economic/Military","value_display":"$180M","value_tier":"Small ($100\u2013499M)","value_usd":"180000000.0","domain":"Land","capability_function":"Strike / Fires","package_type":"New Capability","lethality_type":"Kinetic effects","date_type":"DSCA notification (CN posting)","us_administration":"Biden (2021\u20132025)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"nan"},{"date":"2023-03-01","case_id":"20230301_100_AGM_88B_HARMs_200_AIM_120C_8_AMRAAM","actor":"USA","weapon_sale":"100 AGM-88B HARMs, 200 AIM-120C-8 AMRAAM, training missiles, guidance sections, and support","dime":"Economic/Military","value_display":"$88B","value_tier":"Mega (\u2265$5B)","value_usd":"88000000000.0","domain":"Air","capability_function":"Strike / Fires","package_type":"Sustainment / Readiness","lethality_type":"Non-kinetic enabling","date_type":"DSCA notification (CN posting)","us_administration":"Biden (2021\u20132025)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"nan"},{"date":"2023-06-29","case_id":"20230629_30_mm_Ammunition_and_related_equipment","actor":"USA","weapon_sale":"30 mm Ammunition and related equipment","dime":"Economic/Military","value_display":"$332M","value_tier":"Small ($100\u2013499M)","value_usd":"332300000.0","domain":"Land","capability_function":"Strike / Fires","package_type":"New Capability","lethality_type":"Non-kinetic enabling","date_type":"DSCA notification (CN posting)","us_administration":"Biden (2021\u20132025)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"nan"},{"date":"2023-06-29","case_id":"20230629_Cooperative_Logistics_Supply_Support_Arr","actor":"USA","weapon_sale":"Cooperative Logistics Supply Support Arrangement (CLSSA) Foreign Military Sales Order II","dime":"Economic/Military","value_display":"$108M","value_tier":"Small ($100\u2013499M)","value_usd":"108000000.0","domain":"Other/Unknown","capability_function":"Sustainment / Spares / Logistics","package_type":"Sustainment / Readiness","lethality_type":"Non-kinetic enabling","date_type":"DSCA notification (CN posting)","us_administration":"Biden (2021\u20132025)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"nan"},{"date":"2023-08-23","case_id":"20230823_F_16_Infrared_Search_and_Track","actor":"USA","weapon_sale":"F-16 Infrared Search and Track (IRST)","dime":"Economic/Military","value_display":"$500M","value_tier":"Medium ($500M\u2013$1.99B)","value_usd":"500000000.0","domain":"Air","capability_function":"ISR / Targeting","package_type":"New Capability","lethality_type":"Non-kinetic enabling","date_type":"DSCA notification (CN posting)","us_administration":"Biden (2021\u20132025)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"nan"},{"date":"2023-12-15","case_id":"20231215_C4_Life_Cycle_Support","actor":"USA","weapon_sale":"C4 Life Cycle Support","dime":"Economic/Military","value_display":"$300M","value_tier":"Small ($100\u2013499M)","value_usd":"300000000.0","domain":"C4ISR","capability_function":"C2 / Networks / Data Links","package_type":"Sustainment / Readiness","lethality_type":"Non-kinetic enabling","date_type":"DSCA notification (CN posting)","us_administration":"Biden (2021\u20132025)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"nan"},{"date":"2024-02-21","case_id":"20240221_Taiwan_Advanced_Tactical_Data_Link_Syste","actor":"USA","weapon_sale":"Taiwan Advanced Tactical Data Link System Upgrade Planning","dime":"Economic/Military","value_display":"$75M","value_tier":"Micro (<$100M)","value_usd":"75000000.0","domain":"C4ISR","capability_function":"C2 / Networks / Data Links","package_type":"Upgrade / Modernization","lethality_type":"Non-kinetic enabling","date_type":"DSCA notification (CN posting)","us_administration":"Biden (2021\u20132025)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"nan"},{"date":"2024-06-05","case_id":"20240605_F_16_Non_Standard_Spare_and_Repair_Parts","actor":"USA","weapon_sale":"F-16 Non-Standard Spare and Repair Parts","dime":"Economic/Military","value_display":"$80M","value_tier":"Micro (<$100M)","value_usd":"80000000.0","domain":"Air","capability_function":"Sustainment / Spares / Logistics","package_type":"Sustainment / Readiness","lethality_type":"Non-kinetic enabling","date_type":"DSCA notification (CN posting)","us_administration":"Biden (2021\u20132025)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"nan"},{"date":"2024-06-18","case_id":"20240618_Altius_600M_V_Unmanned_Aerial_Vehicles","actor":"USA","weapon_sale":"Altius 600M-V Unmanned Aerial Vehicles","dime":"Economic/Military","value_display":"$300M","value_tier":"Small ($100\u2013499M)","value_usd":"300000000.0","domain":"Air","capability_function":"Other/Unknown","package_type":"New Capability","lethality_type":"Kinetic effects","date_type":"DSCA notification (CN posting)","us_administration":"Biden (2021\u20132025)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"nan"},{"date":"2024-06-18","case_id":"20240618_Switch_Blade_300_Anti_Personnel_and_Anti","actor":"USA","weapon_sale":"Switch Blade 300 Anti-Personnel and Anti-Armor Loitering Missile System","dime":"Economic/Military","value_display":"$60.2M","value_tier":"Micro (<$100M)","value_usd":"60200000.0","domain":"Air","capability_function":"Strike / Fires","package_type":"New Capability","lethality_type":"Kinetic effects","date_type":"DSCA notification (CN posting)","us_administration":"Biden (2021\u20132025)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"nan"},{"date":"2024-10-25","case_id":"20241025_AN_TPS_77_and_AN_TPS_78_Radar_Turnkey_Sy","actor":"USA","weapon_sale":"AN/TPS-77 and AN/TPS-78 Radar Turnkey Systems","dime":"Economic/Military","value_display":"$828M","value_tier":"Medium ($500M\u2013$1.99B)","value_usd":"828000000.0","domain":"IAMD","capability_function":"Air & Missile Defense","package_type":"New Capability","lethality_type":"Defensive intercept / protection","date_type":"DSCA notification (CN posting)","us_administration":"Biden (2021\u20132025)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"nan"},{"date":"2024-10-25","case_id":"20241025_National_Advanced_Surface_to_Air_Missile","actor":"USA","weapon_sale":"National Advanced Surface-to-Air Missile System (NASAMS)","dime":"Economic/Military","value_display":"$1.16B","value_tier":"Medium ($500M\u2013$1.99B)","value_usd":"1160000000.0","domain":"IAMD","capability_function":"Air & Missile Defense","package_type":"New Capability","lethality_type":"Defensive intercept / protection","date_type":"DSCA notification (CN posting)","us_administration":"Biden (2021\u20132025)","date_confidence":"Medium (PR=posted; CR=+30d inferred)","source_hint":"nan"}],"diplomatic":[{"Date":"2020-08-09","Descriptor":"US HHS Secretary Alex Azar meets President Tsai during Aug 9\u201312 visit to Taipei; most senior US visit since 1979.","Meeting_Location":"Taiwan","US_Official_Level":"High","Meeting_Status":"Official","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2022-03-01","Descriptor":"Former Secretary of State Mike Pompeo meets President Tsai in Taiwan; urges US diplomatic recognition of Taiwan.","Meeting_Location":"Taiwan","US_Official_Level":"Former","Meeting_Status":"FormerCapacity","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2022-04-14","Descriptor":"Sen. Lindsey Graham and Sen. Robert Menendez visit Taiwan.","Meeting_Location":"Taiwan","US_Official_Level":"Medium","Meeting_Status":"Official","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2022-05-31","Descriptor":"President Tsai meets US delegation led by Sen. Tammy Duckworth.","Meeting_Location":"Taiwan","US_Official_Level":"Medium","Meeting_Status":"Official","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2022-08-02","Descriptor":"House Speaker Nancy Pelosi meets President Tsai in Taiwan.","Meeting_Location":"Taiwan","US_Official_Level":"High","Meeting_Status":"Official","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2022-08-14","Descriptor":"Sen. Ed Markey visits Taiwan.","Meeting_Location":"Taiwan","US_Official_Level":"Medium","Meeting_Status":"Official","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2022-08-22","Descriptor":"President Tsai meets Indiana Governor Eric Holcomb.","Meeting_Location":"Taiwan","US_Official_Level":"Low","Meeting_Status":"Official","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2022-08-25","Descriptor":"Sen. Marsha Blackburn visits Taiwan.","Meeting_Location":"Taiwan","US_Official_Level":"Medium","Meeting_Status":"Official","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2022-09-08","Descriptor":"President Tsai meets US delegation led by Rep. Stephanie Murphy.","Meeting_Location":"Taiwan","US_Official_Level":"Medium","Meeting_Status":"Official","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2022-10-12","Descriptor":"President Tsai meets US House delegation.","Meeting_Location":"Taiwan","US_Official_Level":"Medium","Meeting_Status":"Official","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2022-12-06","Descriptor":"President Tsai meets Idaho Governor Brad Little.","Meeting_Location":"Taiwan","US_Official_Level":"Low","Meeting_Status":"Official","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2023-01-17","Descriptor":"President Tsai meets US delegation led by Sen. Todd Young.","Meeting_Location":"Taiwan","US_Official_Level":"Medium","Meeting_Status":"Official","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2023-02-21","Descriptor":"President Tsai meets US House delegation led by Rep. Ro Khanna.","Meeting_Location":"Taiwan","US_Official_Level":"Medium","Meeting_Status":"Official","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2023-03-21","Descriptor":"President Tsai confers decoration on former NSA Robert O\u2019Brien.","Meeting_Location":"Taiwan","US_Official_Level":"Former","Meeting_Status":"FormerCapacity","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2023-04-05","Descriptor":"Tsai meets House Speaker Kevin McCarthy at the Reagan Library during transit.","Meeting_Location":"USA","US_Official_Level":"High","Meeting_Status":"Official","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2023-04-06","Descriptor":"Rep. Mike Gallagher visits Taiwan.","Meeting_Location":"Taiwan","US_Official_Level":"Medium","Meeting_Status":"Official","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2023-04-13","Descriptor":"President Tsai meets US delegation led by Sen. John Hoeven.","Meeting_Location":"Taiwan","US_Official_Level":"Medium","Meeting_Status":"Official","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2023-04-24","Descriptor":"President Tsai meets Virginia Governor Glenn Youngkin.","Meeting_Location":"Taiwan","US_Official_Level":"Low","Meeting_Status":"Official","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2023-05-01","Descriptor":"President Tsai meets former NSA John Bolton.","Meeting_Location":"Taiwan","US_Official_Level":"Former","Meeting_Status":"FormerCapacity","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2023-06-28","Descriptor":"President Tsai meets delegation led by HASC Chair Mike Rogers.","Meeting_Location":"Taiwan","US_Official_Level":"Medium","Meeting_Status":"Official","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2023-09-01","Descriptor":"President Tsai meets delegation led by HASC Vice Chair Rob Wittman.","Meeting_Location":"Taiwan","US_Official_Level":"Medium","Meeting_Status":"Official","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2024-02-01","Descriptor":"US congressional delegations visit Taiwan.","Meeting_Location":"Taiwan","US_Official_Level":"Medium","Meeting_Status":"Official","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2024-03-05","Descriptor":"MOFA welcomes opening of Michigan Taiwan office during Gov. Whitmer visit.","Meeting_Location":"USA","US_Official_Level":"Low","Meeting_Status":"Official","TW_Level":"NonSenior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2024-04-01","Descriptor":"President Tsai meets AIT Chair Laura Rosenberger.","Meeting_Location":"Taiwan","US_Official_Level":"Medium","Meeting_Status":"Official","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2024-04-24","Descriptor":"Rep. Lisa McClain visits Taiwan.","Meeting_Location":"Taiwan","US_Official_Level":"Medium","Meeting_Status":"Official","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2024-05-27","Descriptor":"HFAC Chair Rep. Michael McCaul visits Taiwan.","Meeting_Location":"Taiwan","US_Official_Level":"Medium","Meeting_Status":"Official","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2024-05-29","Descriptor":"President Lai meets bipartisan US delegation led by Sen. Tammy Duckworth.","Meeting_Location":"Taiwan","US_Official_Level":"Medium","Meeting_Status":"Official","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2024-06-14","Descriptor":"President Lai meets AIT Director Ambassador James Moriarty.","Meeting_Location":"Taiwan","US_Official_Level":"Medium","Meeting_Status":"Official","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2024-08-22","Descriptor":"President Lai meets delegation led by former UN Ambassador Nikki Haley.","Meeting_Location":"Taiwan","US_Official_Level":"Former","Meeting_Status":"FormerCapacity","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2024-11-26","Descriptor":"President Lai meets US delegation led by Sen. Jeff Merkley.","Meeting_Location":"Taiwan","US_Official_Level":"Medium","Meeting_Status":"Official","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2025-03-18","Descriptor":"President Lai meets Arizona Governor Katie Hobbs.","Meeting_Location":"Taiwan","US_Official_Level":"Low","Meeting_Status":"Official","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"Taiwan"},{"Date":"2025-04-04","Descriptor":"Taiwan NSC head Joseph Wu visits US for talks.","Meeting_Location":"USA","US_Official_Level":"Medium","Meeting_Status":"Official","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"Taiwan"},{"Date":"2025-04-18","Descriptor":"President Lai meets delegation led by Sen. Pete Ricketts.","Meeting_Location":"Taiwan","US_Official_Level":"Medium","Meeting_Status":"Official","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2025-05-21","Descriptor":"President Lai meets Alaska Governor.","Meeting_Location":"Taiwan","US_Official_Level":"Low","Meeting_Status":"Official","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2025-05-27","Descriptor":"President Lai meets bipartisan US House delegation.","Meeting_Location":"Taiwan","US_Official_Level":"Medium","Meeting_Status":"Official","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2025-05-28","Descriptor":"Sen. Tammy Duckworth leads US congressional delegation visit to Taiwan.","Meeting_Location":"Taiwan","US_Official_Level":"Medium","Meeting_Status":"Official","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2024-01-21","Descriptor":"Sen. Tammy Duckworth meets Taiwan Legislative Yuan leaders.","Meeting_Location":"Taiwan","US_Official_Level":"Medium","Meeting_Status":"Official","TW_Level":"NonSenior","DIME":"Diplomatic","Country_Original":"USA"},{"Date":"2024-05-08","Descriptor":"Taiwan Foreign Minister Lin Chia-lung visits Texas.","Meeting_Location":"USA","US_Official_Level":"Medium","Meeting_Status":"Official","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"Taiwan"},{"Date":"2024-01-17","Descriptor":"President Lai meets former US Vice President Mike Pence.","Meeting_Location":"Taiwan","US_Official_Level":"Former","Meeting_Status":"FormerCapacity","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"Taiwan"},{"Date":"2024-02-17","Descriptor":"President Lai meets former deputy national security director.","Meeting_Location":"Taiwan","US_Official_Level":"Former","Meeting_Status":"FormerCapacity","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"Taiwan"},{"Date":"2024-02-21","Descriptor":"President Lai meets Akie Abe.","Meeting_Location":"Taiwan","US_Official_Level":"Former","Meeting_Status":"FormerCapacity","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"Taiwan"},{"Date":"2024-12-09","Descriptor":"President Lai meets Oklahoma Governor.","Meeting_Location":"Taiwan","US_Official_Level":"Low","Meeting_Status":"Official","TW_Level":"Senior","DIME":"Diplomatic","Country_Original":"Taiwan"},{"Date":"2025-09-19","Descriptor":"Alexander Yui meets Trump-linked intelligence advisers.","Meeting_Location":"USA","US_Official_Level":"Low","Meeting_Status":"Unofficial","TW_Level":"NonSenior","DIME":"Diplomatic","Country_Original":"Taiwan"}],"bills":[{"Date":"2019-05-23","Bill_ID":"S.1678","Milestone":"Introduced"},{"Date":"2021-02-18","Bill_ID":"H.R.1145","Milestone":"Introduced"},{"Date":"2021-02-18","Bill_ID":"H.R.1173","Milestone":"Introduced"},{"Date":"2021-02-22","Bill_ID":"S.332","Milestone":"Introduced"},{"Date":"2021-02-26","Bill_ID":"H.Con.Res.21","Milestone":"Introduced"},{"Date":"2021-03-17","Bill_ID":"S.811","Milestone":"Introduced"},{"Date":"2021-03-17","Bill_ID":"S.812","Milestone":"Introduced"},{"Date":"2021-03-19","Bill_ID":"H.R.2103","Milestone":"Introduced"},{"Date":"2021-03-24","Bill_ID":"S.960","Milestone":"Introduced"},{"Date":"2021-03-25","Bill_ID":"S.1054","Milestone":"Introduced"},{"Date":"2021-04-13","Bill_ID":"H.R.2471","Milestone":"Introduced"},{"Date":"2021-04-15","Bill_ID":"S.1169","Milestone":"Introduced"},{"Date":"2021-05-11","Bill_ID":"H.R.3084","Milestone":"Introduced"},{"Date":"2021-05-25","Bill_ID":"H.R.3524","Milestone":"Introduced"},{"Date":"2021-05-28","Bill_ID":"H.R.3634","Milestone":"Introduced"},{"Date":"2021-06-16","Bill_ID":"H.R.3934","Milestone":"Introduced"},{"Date":"2021-06-16","Bill_ID":"S.2073","Milestone":"Introduced"},{"Date":"2021-07-19","Bill_ID":"H.R.4521","Milestone":"Introduced"},{"Date":"2021-07-20","Bill_ID":"S.2395","Milestone":"Introduced"},{"Date":"2021-07-20","Bill_ID":"H.R.4560","Milestone":"Introduced"},{"Date":"2021-10-26","Bill_ID":"S.3068","Milestone":"Introduced"},{"Date":"2021-11-02","Bill_ID":"S.3131","Milestone":"Introduced"},{"Date":"2022-01-19","Bill_ID":"S.3526","Milestone":"Introduced"},{"Date":"2022-01-20","Bill_ID":"H.R.6443","Milestone":"Introduced"},{"Date":"2022-01-25","Bill_ID":"H.R.6484","Milestone":"Introduced"},{"Date":"2022-02-03","Bill_ID":"H.R.6578","Milestone":"Introduced"},{"Date":"2022-02-03","Bill_ID":"S.3573","Milestone":"Introduced"},{"Date":"2022-03-02","Bill_ID":"S.3735","Milestone":"Introduced"},{"Date":"2022-05-03","Bill_ID":"S.4129","Milestone":"Introduced"},{"Date":"2022-05-16","Bill_ID":"H.R.7776","Milestone":"Introduced"},{"Date":"2022-05-26","Bill_ID":"S.4331","Milestone":"Introduced"},{"Date":"2022-06-16","Bill_ID":"S.4428","Milestone":"Introduced"},{"Date":"2022-07-01","Bill_ID":"H.R.8259","Milestone":"Introduced"},{"Date":"2023-01-25","Bill_ID":"H.Con.Res.10","Milestone":"Introduced"},{"Date":"2023-01-26","Bill_ID":"H.R.540","Milestone":"Introduced"},{"Date":"2023-01-26","Bill_ID":"H.R.554","Milestone":"Introduced"},{"Date":"2023-02-02","Bill_ID":"H.R.815","Milestone":"Introduced"},{"Date":"2023-02-24","Bill_ID":"H.R.1159","Milestone":"Introduced"},{"Date":"2023-02-24","Bill_ID":"H.R.1176","Milestone":"Introduced"},{"Date":"2023-03-01","Bill_ID":"H.R.1330","Milestone":"Introduced"},{"Date":"2023-03-07","Bill_ID":"H.R.1425","Milestone":"Introduced"},{"Date":"2023-03-09","Bill_ID":"S.770","Milestone":"Introduced"},{"Date":"2023-03-29","Bill_ID":"H.R.2372","Milestone":"Introduced"},{"Date":"2023-03-30","Bill_ID":"H.R.2449","Milestone":"Introduced"},{"Date":"2023-03-30","Bill_ID":"S.1074","Milestone":"Introduced"},{"Date":"2023-04-18","Bill_ID":"H.R.2670","Milestone":"Introduced"},{"Date":"2023-04-20","Bill_ID":"H.R.2756","Milestone":"Introduced"},{"Date":"2023-04-20","Bill_ID":"S.1241","Milestone":"Introduced"},{"Date":"2023-04-26","Bill_ID":"H.R.2882","Milestone":"Introduced"},{"Date":"2023-05-04","Bill_ID":"S.1457","Milestone":"Introduced"},{"Date":"2023-05-10","Bill_ID":"S.1513","Milestone":"Introduced"},{"Date":"2023-05-10","Bill_ID":"H.R.3171","Milestone":"Introduced"},{"Date":"2023-05-15","Bill_ID":"H.R.3334","Milestone":"Introduced"},{"Date":"2023-06-12","Bill_ID":"H.R.4004","Milestone":"Introduced"},{"Date":"2023-07-11","Bill_ID":"S.2226","Milestone":"Introduced"},{"Date":"2023-09-11","Bill_ID":"S.2761","Milestone":"Introduced"},{"Date":"2023-09-26","Bill_ID":"S.Res.363","Milestone":"Introduced"},{"Date":"2023-09-28","Bill_ID":"S.2995","Milestone":"Introduced"},{"Date":"2023-10-03","Bill_ID":"H.Con.Res.71","Milestone":"Introduced"},{"Date":"2023-10-19","Bill_ID":"H.R.5988","Milestone":"Introduced"},{"Date":"2023-10-24","Bill_ID":"S.3110","Milestone":"Introduced"},{"Date":"2024-01-10","Bill_ID":"H.Res.955","Milestone":"Introduced"},{"Date":"2024-01-11","Bill_ID":"S.Res.521","Milestone":"Introduced"},{"Date":"2024-03-05","Bill_ID":"H.R.7521","Milestone":"Introduced"},{"Date":"2024-03-05","Bill_ID":"S.3861","Milestone":"Introduced"},{"Date":"2024-05-02","Bill_ID":"H.R.8238","Milestone":"Introduced"},{"Date":"2024-05-02","Bill_ID":"S.4241","Milestone":"Introduced"},{"Date":"2024-05-10","Bill_ID":"H.R.8358","Milestone":"Introduced"},{"Date":"2024-05-21","Bill_ID":"H.R.8482","Milestone":"Introduced"},{"Date":"2024-06-14","Bill_ID":"H.R.8771","Milestone":"Introduced"},{"Date":"2024-07-25","Bill_ID":"S.4789","Milestone":"Introduced"},{"Date":"2024-07-25","Bill_ID":"S.4797","Milestone":"Introduced"},{"Date":"2025-01-03","Bill_ID":"H.R.33","Milestone":"Introduced"},{"Date":"2025-01-23","Bill_ID":"S.199","Milestone":"Introduced"},{"Date":"2025-02-04","Bill_ID":"H.R.910","Milestone":"Introduced"},{"Date":"2025-02-06","Bill_ID":"H.Con.Res.8","Milestone":"Introduced"},{"Date":"2025-02-20","Bill_ID":"S.Res.86","Milestone":"Introduced"},{"Date":"2025-02-21","Bill_ID":"H.R.1512","Milestone":"Introduced"},{"Date":"2025-02-21","Bill_ID":"H.Res.148","Milestone":"Introduced"},{"Date":"2025-02-25","Bill_ID":"S.733","Milestone":"Introduced"},{"Date":"2025-03-03","Bill_ID":"S.821","Milestone":"Introduced"},{"Date":"2025-03-12","Bill_ID":"S.974","Milestone":"Introduced"},{"Date":"2025-03-14","Bill_ID":"H.R.2113","Milestone":"Introduced"},{"Date":"2025-03-27","Bill_ID":"H.R.2416","Milestone":"Introduced"},{"Date":"2025-03-31","Bill_ID":"S.1216","Milestone":"Introduced"},{"Date":"2025-04-01","Bill_ID":"H.R.2559","Milestone":"Introduced"},{"Date":"2022-09-14","Bill_ID":"S.4428","Milestone":"Passed"},{"Date":"2020-03-26","Bill_ID":"S.1678","Milestone":"Became law"},{"Date":"2020-12-27","Bill_ID":"Taiwan Assurance Act of 2020 (P.L. 116-260, Division FF, Title III, Subtitle B)","Milestone":"Became law"},{"Date":"2022-03-15","Bill_ID":"H.R.2471","Milestone":"Became law"},{"Date":"2022-05-13","Bill_ID":"S.812","Milestone":"Became law"},{"Date":"2022-12-23","Bill_ID":"H.R.7776","Milestone":"Became law"}],"ships":[{"Date":"2021-07-05","Label":"United States \u2013 USS McCampbell (Destroyer)<br>Country: United States<br>Type: Destroyer<br>Entries: 1","Country":"United States","Ship_Type":"Destroyer"},{"Date":"2021-08-15","Label":"United States \u2013 USS Milius (Destroyer)<br>Country: United States<br>Type: Destroyer<br>Entries: 1","Country":"United States","Ship_Type":"Destroyer"},{"Date":"2021-09-01","Label":"Canada \u2013 HMCS Winnipeg (Frigate)<br>Country: Canada<br>Type: Frigate<br>Entries: 1","Country":"Canada","Ship_Type":"Frigate"},{"Date":"2021-10-10","Label":"Japan \u2013 JS Izumo Helicopter Carrier (Aircraft Carrier)<br>Country: Japan<br>Type: Aircraft Carrier<br>Entries: 1","Country":"Japan","Ship_Type":"Aircraft Carrier"},{"Date":"2021-11-20","Label":"United States \u2013 USS America Amphibious Assault Ship (Unknown)<br>Country: United States<br>Type: Amphibious Assault Ship<br>Entries: 1","Country":"United States","Ship_Type":"Amphibious Assault Ship"},{"Date":"2021-12-05","Label":"Germany \u2013 FGS Sachsen (Frigate)<br>Country: Germany<br>Type: Frigate<br>Entries: 1","Country":"Germany","Ship_Type":"Frigate"},{"Date":"2022-01-22","Label":"United States \u2013 USS John Finn (Destroyer)<br>Country: United States<br>Type: Destroyer<br>Entries: 1","Country":"United States","Ship_Type":"Destroyer"},{"Date":"2022-02-15","Label":"Australia \u2013 HMAS Arunta (Frigate)<br>Country: Australia<br>Type: Frigate<br>Entries: 1","Country":"Australia","Ship_Type":"Frigate"},{"Date":"2022-03-18","Label":"United States \u2013 USS Carl Vinson Aircraft Carrier (Aircraft Carrier)<br>Country: United States<br>Type: Aircraft Carrier<br>Entries: 1","Country":"United States","Ship_Type":"Aircraft Carrier"},{"Date":"2022-04-25","Label":"France \u2013 FS Latouche-Tr (Frigate)<br>Country: France<br>Type: Frigate<br>Entries: 1","Country":"France","Ship_Type":"Frigate"},{"Date":"2022-05-20","Label":"United States \u2013 USS Essex Amphibious Assault Ship (Unknown)<br>Country: United States<br>Type: Amphibious Assault Ship<br>Entries: 1","Country":"United States","Ship_Type":"Amphibious Assault Ship"},{"Date":"2022-06-10","Label":"United States \u2013 USS Higgins (Destroyer)<br>Country: United States<br>Type: Destroyer<br>Entries: 1","Country":"United States","Ship_Type":"Destroyer"},{"Date":"2022-06-24","Label":"United States \u2013 P-8 Poseidon (Maritime Patrol Aircraft)<br>Country: United States<br>Type: Maritime Patrol Aircraft<br>Entries: 1","Country":"United States","Ship_Type":"Maritime Patrol Aircraft"},{"Date":"2022-07-18","Label":"Japan \u2013 JS Shiranui (Destroyer)<br>Country: Japan<br>Type: Destroyer<br>Entries: 1","Country":"Japan","Ship_Type":"Destroyer"},{"Date":"2022-08-30","Label":"Canada \u2013 HMCS Ottawa (Frigate)<br>Country: Canada<br>Type: Frigate<br>Entries: 1","Country":"Canada","Ship_Type":"Frigate"},{"Date":"2022-09-12","Label":"United States \u2013 USS Dewey (Destroyer)<br>Country: United States<br>Type: Destroyer<br>Entries: 1","Country":"United States","Ship_Type":"Destroyer"},{"Date":"2022-10-25","Label":"United States \u2013 USS Shiloh (Cruiser)<br>Country: United States<br>Type: Cruiser<br>Entries: 1","Country":"United States","Ship_Type":"Cruiser"},{"Date":"2022-11-10","Label":"United States \u2013 USS Theodore Roosevelt Aircraft Carrier (Aircraft Carrier)<br>Country: United States<br>Type: Aircraft Carrier<br>Entries: 1","Country":"United States","Ship_Type":"Aircraft Carrier"},{"Date":"2022-12-15","Label":"France \u2013 FS Normandie (Frigate)<br>Country: France<br>Type: Frigate<br>Entries: 1","Country":"France","Ship_Type":"Frigate"},{"Date":"2023-01-10","Label":"United States \u2013 USS Mustin (Destroyer)<br>Country: United States<br>Type: Destroyer<br>Entries: 1","Country":"United States","Ship_Type":"Destroyer"},{"Date":"2023-02-05","Label":"Germany \u2013 FGS Berlin Replenishment Ship (Unknown)<br>Country: Germany<br>Type: Replenishment Oiler<br>Entries: 1","Country":"Germany","Ship_Type":"Replenishment Oiler"},{"Date":"2023-03-15","Label":"United States \u2013 USS Tripoli Amphibious Assault Ship (Unknown)<br>Country: United States<br>Type: Amphibious Assault Ship<br>Entries: 1","Country":"United States","Ship_Type":"Amphibious Assault Ship"},{"Date":"2023-04-20","Label":"France \u2013 FS Auvergne (Frigate)<br>Country: France<br>Type: Frigate<br>Entries: 1","Country":"France","Ship_Type":"Frigate"},{"Date":"2023-04-27","Label":"United States \u2013 P-8 Poseidon (Maritime Patrol Aircraft)<br>Country: United States<br>Type: Maritime Patrol Aircraft<br>Entries: 1","Country":"United States","Ship_Type":"Maritime Patrol Aircraft"},{"Date":"2023-05-25","Label":"United States \u2013 USS Jackson (Littoral Combat Ship)<br>Country: United States<br>Type: Littoral Combat Ship<br>Entries: 1","Country":"United States","Ship_Type":"Littoral Combat Ship"},{"Date":"2023-06-12","Label":"Australia \u2013 HMAS Sydney (Destroyer)<br>Country: Australia<br>Type: Destroyer<br>Entries: 1","Country":"Australia","Ship_Type":"Destroyer"},{"Date":"2023-06-27","Label":"United States \u2013 P-8 Poseidon (Maritime Patrol Aircraft)<br>Country: United States<br>Type: Maritime Patrol Aircraft<br>Entries: 1","Country":"United States","Ship_Type":"Maritime Patrol Aircraft"},{"Date":"2023-07-13","Label":"United States \u2013 P-8 Poseidon (Maritime Patrol Aircraft)<br>Country: United States<br>Type: Maritime Patrol Aircraft<br>Entries: 1","Country":"United States","Ship_Type":"Maritime Patrol Aircraft"},{"Date":"2023-07-30","Label":"United States \u2013 USS New York Amphibious Transport Dock (Unknown)<br>Country: United States<br>Type: Amphibious Assault Ship<br>Entries: 1","Country":"United States","Ship_Type":"Amphibious Assault Ship"},{"Date":"2023-08-22","Label":"Canada \u2013 HMCS Fredericton (Frigate)<br>Country: Canada<br>Type: Frigate<br>Entries: 1","Country":"Canada","Ship_Type":"Frigate"},{"Date":"2023-09-10","Label":"United States \u2013 USS Ticonderoga (Cruiser)<br>Country: United States<br>Type: Cruiser<br>Entries: 1","Country":"United States","Ship_Type":"Cruiser"},{"Date":"2023-10-12","Label":"United States \u2013 P-8 Poseidon (Maritime Patrol Aircraft)<br>Country: United States<br>Type: Maritime Patrol Aircraft<br>Entries: 1","Country":"United States","Ship_Type":"Maritime Patrol Aircraft"},{"Date":"2023-10-15","Label":"Japan \u2013 JS Mogami (Frigate)<br>Country: Japan<br>Type: Frigate<br>Entries: 1","Country":"Japan","Ship_Type":"Frigate"},{"Date":"2023-11-28","Label":"United States \u2013 USS Zumwalt (Destroyer)<br>Country: United States<br>Type: Destroyer<br>Entries: 1","Country":"United States","Ship_Type":"Destroyer"},{"Date":"2023-12-06","Label":"United States \u2013 P-8 Poseidon (Maritime Patrol Aircraft)<br>Country: United States<br>Type: Maritime Patrol Aircraft<br>Entries: 1","Country":"United States","Ship_Type":"Maritime Patrol Aircraft"},{"Date":"2023-12-18","Label":"France \u2013 FS Chevalier Paul (Destroyer)<br>Country: France<br>Type: Destroyer<br>Entries: 1","Country":"France","Ship_Type":"Destroyer"},{"Date":"2024-01-20","Label":"United States \u2013 USS Blue Ridge Command Ship (Unknown)<br>Country: United States<br>Type: Unknown<br>Entries: 1","Country":"United States","Ship_Type":"Unknown"},{"Date":"2024-02-12","Label":"Canada \u2013 HMCS Calgary (Frigate)<br>Country: Canada<br>Type: Frigate<br>Entries: 1","Country":"Canada","Ship_Type":"Frigate"},{"Date":"2024-03-15","Label":"United States \u2013 USS Independence (Littoral Combat Ship)<br>Country: United States<br>Type: Littoral Combat Ship<br>Entries: 1","Country":"United States","Ship_Type":"Littoral Combat Ship"},{"Date":"2024-04-25","Label":"France \u2013 FS Duguay-Trouin (Frigate)<br>Country: France<br>Type: Frigate<br>Entries: 1","Country":"France","Ship_Type":"Frigate"},{"Date":"2024-05-20","Label":"United States \u2013 USS Nimitz Aircraft Carrier (Aircraft Carrier)<br>Country: United States<br>Type: Aircraft Carrier<br>Entries: 1","Country":"United States","Ship_Type":"Aircraft Carrier"},{"Date":"2024-06-18","Label":"Germany \u2013 FGS Baden-W (Frigate)<br>Country: Germany<br>Type: Frigate<br>Entries: 1","Country":"Germany","Ship_Type":"Frigate"},{"Date":"2024-07-25","Label":"United States \u2013 USS Wasp Amphibious Assault Ship (Unknown)<br>Country: United States<br>Type: Amphibious Assault Ship<br>Entries: 1","Country":"United States","Ship_Type":"Amphibious Assault Ship"},{"Date":"2024-08-10","Label":"Japan \u2013 JS Kaga Helicopter Carrier (Aircraft Carrier)<br>Country: Japan<br>Type: Aircraft Carrier<br>Entries: 1","Country":"Japan","Ship_Type":"Aircraft Carrier"},{"Date":"2024-09-17","Label":"United States \u2013 P-8 Poseidon (Maritime Patrol Aircraft)<br>Country: United States<br>Type: Maritime Patrol Aircraft<br>Entries: 1","Country":"United States","Ship_Type":"Maritime Patrol Aircraft"},{"Date":"2024-09-20","Label":"United States \u2013 USS Ronald Reagan Aircraft Carrier (Aircraft Carrier)<br>Country: United States<br>Type: Aircraft Carrier<br>Entries: 1","Country":"United States","Ship_Type":"Aircraft Carrier"},{"Date":"2024-10-15","Label":"Australia \u2013 HMAS Hobart (Destroyer)<br>Country: Australia<br>Type: Destroyer<br>Entries: 1","Country":"Australia","Ship_Type":"Destroyer"},{"Date":"2024-11-30","Label":"United States \u2013 USS America Amphibious Assault Ship (Unknown)<br>Country: United States<br>Type: Amphibious Assault Ship<br>Entries: 1","Country":"United States","Ship_Type":"Amphibious Assault Ship"},{"Date":"2024-12-18","Label":"France \u2013 FS Forbin (Destroyer)<br>Country: France<br>Type: Destroyer<br>Entries: 1","Country":"France","Ship_Type":"Destroyer"},{"Date":"2025-02-05","Label":"Japan \u2013 JS Akizuki (Destroyer)<br>Country: Japan<br>Type: Destroyer<br>Entries: 1","Country":"Japan","Ship_Type":"Destroyer"},{"Date":"2025-02-10","Label":"United States \u2013 USS Ralph Johnson (Destroyer)<br>Country: United States<br>Type: Destroyer<br>Entries: 1","Country":"United States","Ship_Type":"Destroyer"},{"Date":"2025-02-16","Label":"Canada \u2013 HMCS Ottawa (Frigate)<br>Country: Canada<br>Type: Frigate<br>Entries: 1","Country":"Canada","Ship_Type":"Frigate"},{"Date":"2025-04-23","Label":"United States \u2013 USS William P. Lawrence (Destroyer)<br>Country: United States<br>Type: Destroyer<br>Entries: 1","Country":"United States","Ship_Type":"Destroyer"},{"Date":"2025-06-12","Label":"Japan \u2013 JS Takanami (Destroyer)<br>Country: Japan<br>Type: Destroyer<br>Entries: 1","Country":"Japan","Ship_Type":"Destroyer"},{"Date":"2025-06-18","Label":"United Kingdom \u2013 HMS Spey (Offshore Patrol Vessel)<br>Country: United Kingdom<br>Type: Offshore Patrol Vessel<br>Entries: 1","Country":"United Kingdom","Ship_Type":"Offshore Patrol Vessel"},{"Date":"2025-09-06","Label":"Canada \u2013 HMCS Ville de Quebec (Frigate); Australia \u2013 HMAS Brisbane (Destroyer)<br>Country: Australia, Canada<br>Type: Destroyer<br>Entries: 2","Country":"Australia, Canada","Ship_Type":"Destroyer"},{"Date":"2025-09-12","Label":"United Kingdom \u2013 HMS Richmond (Unknown); United States \u2013 USS Higgins (Destroyer)<br>Country: United Kingdom, United States<br>Type: Destroyer<br>Entries: 2","Country":"United Kingdom, United States","Ship_Type":"Destroyer"},{"Date":"2025-11-05","Label":"New Zealand \u2013 HMNZS Aotearoa (Replenishment Oiler)<br>Country: New Zealand<br>Type: Replenishment Oiler<br>Entries: 1","Country":"New Zealand","Ship_Type":"Replenishment Oiler"}],"political_symbolic":[{"date":"2020-09-18","end_date":"2020-09-18","actor":"China","event_type":"Symbolic Holiday","event_name":"PRC National Humiliation Day","short_label":"PRC National Humiliation Day","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2020-10-01","end_date":"2020-10-01","actor":"China","event_type":"Symbolic Holiday","event_name":"PRC National Day","short_label":"PRC National Day","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2020-10-10","end_date":"2020-10-10","actor":"Taiwan","event_type":"Symbolic Holiday","event_name":"Taiwan National Day","short_label":"Taiwan National Day","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2021-02-11","end_date":"2021-02-17","actor":"China/Taiwan","event_type":"Symbolic Holiday","event_name":"Chinese Lunar New Year","short_label":"Chinese Lunar New Year","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2021-03-04","end_date":"2021-03-14","actor":"China","event_type":"Political","event_name":"National People's Congress and Chinese People's Political Consultative Conference","short_label":"National People's Congress a","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2021-07-01","end_date":"2021-07-01","actor":"China","event_type":"Symbolic Holiday","event_name":"CCP 100 year aniversiary","short_label":"CCP 100 year aniversiary","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2021-07-01","end_date":"2021-07-01","actor":"China","event_type":"Symbolic Holiday","event_name":"PRC Founding of CCP","short_label":"PRC Founding of CCP","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2021-08-01","end_date":"2021-08-01","actor":"China","event_type":"Symbolic Holiday","event_name":"PLA Founding Day","short_label":"PLA Founding Day","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2021-09-03","end_date":"2021-09-03","actor":"China","event_type":"Symbolic Holiday","event_name":"PRC Victory Day (WWII)","short_label":"PRC Victory Day (WWII)","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2021-09-18","end_date":"2021-09-18","actor":"China","event_type":"Symbolic Holiday","event_name":"PRC National Humiliation Day","short_label":"PRC National Humiliation Day","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2021-10-01","end_date":"2021-10-01","actor":"China","event_type":"Symbolic Holiday","event_name":"PRC National Day","short_label":"PRC National Day","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2021-10-10","end_date":"2021-10-10","actor":"Taiwan","event_type":"Symbolic Holiday","event_name":"Taiwan National Day (110th Anniversary)","short_label":"Taiwan National Day (110th A","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2022-01-31","end_date":"2022-02-06","actor":"China/Taiwan","event_type":"Symbolic Holiday","event_name":"Chinese Lunar New Year","short_label":"Chinese Lunar New Year","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2022-03-04","end_date":"2022-03-14","actor":"China","event_type":"Political","event_name":"National People's Congress and Chinese People's Political Consultative Conference","short_label":"National People's Congress a","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2022-07-01","end_date":"2022-07-01","actor":"China","event_type":"Symbolic Holiday","event_name":"PRC Founding of CCP","short_label":"PRC Founding of CCP","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2022-08-01","end_date":"2022-08-01","actor":"China","event_type":"Symbolic Holiday","event_name":"PLA Founding Day","short_label":"PLA Founding Day","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2022-08-28","end_date":"2022-11-26","actor":"Taiwan","event_type":"Political","event_name":"Taiwan Local Election Cycle (T-90)","short_label":"Taiwan Local Election Cycle ","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2022-09-03","end_date":"2022-09-03","actor":"China","event_type":"Symbolic Holiday","event_name":"PRC Victory Day (WWII)","short_label":"PRC Victory Day (WWII)","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2022-09-18","end_date":"2022-09-18","actor":"China","event_type":"Symbolic Holiday","event_name":"PRC National Humiliation Day","short_label":"PRC National Humiliation Day","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2022-10-01","end_date":"2022-10-01","actor":"China","event_type":"Symbolic Holiday","event_name":"PRC National Day","short_label":"PRC National Day","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2022-10-10","end_date":"2022-10-10","actor":"Taiwan","event_type":"Symbolic Holiday","event_name":"Taiwan National Day","short_label":"Taiwan National Day","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2022-10-16","end_date":"2022-10-22","actor":"China","event_type":"Political","event_name":"20th National Congress","short_label":"20th National Congress","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2023-01-21","end_date":"2023-01-27","actor":"China/Taiwan","event_type":"Symbolic Holiday","event_name":"Chinese Lunar New Year","short_label":"Chinese Lunar New Year","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2023-03-04","end_date":"2023-03-14","actor":"China","event_type":"Political","event_name":"National People's Congress and Chinese People's Political Consultative Conference","short_label":"National People's Congress a","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2023-07-01","end_date":"2023-07-01","actor":"China","event_type":"Symbolic Holiday","event_name":"PRC Founding of CCP","short_label":"PRC Founding of CCP","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2023-08-01","end_date":"2023-08-01","actor":"China","event_type":"Symbolic Holiday","event_name":"PLA Founding Day","short_label":"PLA Founding Day","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2023-09-03","end_date":"2023-09-03","actor":"China","event_type":"Symbolic Holiday","event_name":"PRC Victory Day (WWII)","short_label":"PRC Victory Day (WWII)","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2023-09-18","end_date":"2023-09-18","actor":"China","event_type":"Symbolic Holiday","event_name":"PRC National Humiliation Day","short_label":"PRC National Humiliation Day","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2023-10-01","end_date":"2023-10-01","actor":"China","event_type":"Symbolic Holiday","event_name":"PRC National Day","short_label":"PRC National Day","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2023-10-10","end_date":"2023-10-10","actor":"Taiwan","event_type":"Symbolic Holiday","event_name":"Taiwan National Day","short_label":"Taiwan National Day","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2023-10-15","end_date":"2024-01-13","actor":"Taiwan","event_type":"Political","event_name":"Taiwan Presidential Election Cycle (T-90)","short_label":"Taiwan Presidential Election","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2024-02-10","end_date":"2024-02-17","actor":"China/Taiwan","event_type":"Symbolic Holiday","event_name":"Chinese Lunar New Year","short_label":"Chinese Lunar New Year","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2024-03-04","end_date":"2024-03-14","actor":"China","event_type":"Political","event_name":"National People's Congress and Chinese People's Political Consultative Conference","short_label":"National People's Congress a","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2024-07-01","end_date":"2024-07-01","actor":"China","event_type":"Symbolic Holiday","event_name":"PRC Founding of CCP","short_label":"PRC Founding of CCP","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2024-08-01","end_date":"2024-08-01","actor":"China","event_type":"Symbolic Holiday","event_name":"PLA Founding Day","short_label":"PLA Founding Day","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2024-09-03","end_date":"2024-09-03","actor":"China","event_type":"Symbolic Holiday","event_name":"PRC Victory Day (WWII)","short_label":"PRC Victory Day (WWII)","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2024-09-18","end_date":"2024-09-18","actor":"China","event_type":"Symbolic Holiday","event_name":"PRC National Humiliation Day","short_label":"PRC National Humiliation Day","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2024-10-01","end_date":"2024-10-01","actor":"China","event_type":"Symbolic Holiday","event_name":"PRC National Day","short_label":"PRC National Day","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2024-10-10","end_date":"2024-10-10","actor":"Taiwan","event_type":"Symbolic Holiday","event_name":"Taiwan National Day","short_label":"Taiwan National Day","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2024-10-20","end_date":"2024-10-20","actor":"Taiwan","event_type":"Political","event_name":"Taiwan Presidential Innaguration","short_label":"Taiwan Presidential Innagura","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2025-01-29","end_date":"2025-02-04","actor":"China/Taiwan","event_type":"Symbolic Holiday","event_name":"Chinese Lunar New Year","short_label":"Chinese Lunar New Year","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2025-03-04","end_date":"2025-03-14","actor":"China","event_type":"Political","event_name":"National People's Congress and Chinese People's Political Consultative Conference","short_label":"National People's Congress a","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2025-07-01","end_date":"2025-07-01","actor":"China","event_type":"Symbolic Holiday","event_name":"PRC Founding of CCP","short_label":"PRC Founding of CCP","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2025-08-01","end_date":"2025-08-01","actor":"China","event_type":"Symbolic Holiday","event_name":"PLA Founding Day","short_label":"PLA Founding Day","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2025-09-03","end_date":"2025-09-03","actor":"China","event_type":"Symbolic Holiday","event_name":"PRC Victory Day (WWII)","short_label":"PRC Victory Day (WWII)","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2025-09-18","end_date":"2025-09-18","actor":"China","event_type":"Symbolic Holiday","event_name":"PRC National Humiliation Day","short_label":"PRC National Humiliation Day","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2025-10-01","end_date":"2025-10-01","actor":"China","event_type":"Symbolic Holiday","event_name":"PRC National Day","short_label":"PRC National Day","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2025-10-10","end_date":"2025-10-10","actor":"Taiwan","event_type":"Symbolic Holiday","event_name":"Taiwan National Day","short_label":"Taiwan National Day","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2022-08-04","end_date":"2022-08-07","actor":"China","event_type":"Military exercises","event_name":"Pelosi Snap Exercise","short_label":"Pelosi Snap Exercise","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2023-08-08","end_date":"2023-04-10","actor":"China","event_type":"Military exercises","event_name":"Joint Sword (____)","short_label":"Joint Sword (____)","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2024-05-23","end_date":"2024-05-24","actor":"China","event_type":"Military exercises","event_name":"Joint Sword-2024A (____-2024A)","short_label":"Joint Sword-2024A (____-2024","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2024-10-14","end_date":"2024-10-15","actor":"China","event_type":"Military exercises","event_name":"Joint Sword-2024B (____-2024B)","short_label":"Joint Sword-2024B (____-2024","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2025-04-01","end_date":"2025-04-02","actor":"China","event_type":"Military exercises","event_name":"Strait Thunder-2025A (____-2025A)","short_label":"Strait Thunder-2025A (____-2","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2025-12-29","end_date":"2025-12-30","actor":"China","event_type":"Military exercises","event_name":"Justice Mission 2025 (____\u00d12025)","short_label":"Justice Mission 2025 (____\u00d12","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2021-09-13","end_date":"2021-09-17","actor":"Taiwan","event_type":"Military exercises","event_name":"Han Kuang Military Exercise","short_label":"Han Kuang Military Exercise","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2022-07-25","end_date":"2022-07-29","actor":"Taiwan","event_type":"Military exercises","event_name":"Han Kuang Military Exercise","short_label":"Han Kuang Military Exercise","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2023-07-24","end_date":"2023-07-28","actor":"Taiwan","event_type":"Military exercises","event_name":"Han Kuang Military Exercise","short_label":"Han Kuang Military Exercise","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2024-07-22","end_date":"2024-07-23","actor":"Taiwan","event_type":"Military exercises","event_name":"Han Kuang Military Exercise","short_label":"Han Kuang Military Exercise","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"},{"date":"2025-07-09","end_date":"2025-07-18","actor":"Taiwan","event_type":"Military exercises","event_name":"Han Kuang Military Exercise","short_label":"Han Kuang Military Exercise","description":"","importance":"3","date_confidence":"High","recurrence":"one_off"}]};
+
+// ============================================================================
+// UTILITIES MODULE
+// ============================================================================
+const Utils = {
+  // Calculate 7-day moving average
+  calculateMovingAvg(data, window = 7) {
+    const result = [];
+    for (let i = 0; i < data.length; i++) {
+      const start = Math.max(0, i - Math.floor(window / 2));
+      const end = Math.min(data.length, i + Math.floor(window / 2) + 1);
+      const slice = data.slice(start, end);
+      const avg = slice.reduce((sum, val) => sum + val, 0) / slice.length;
+      result.push(avg);
+    }
+    return result;
+  },
+  
+  // Parse date safely
+  parseDate(dateStr) {
+    return new Date(dateStr);
+  },
+  
+  // Filter data by date range
+  filterByDateRange(data, startDate, endDate) {
+    if (!startDate && !endDate) return data;
+    return data.filter(item => {
+      const date = new Date(item.Date || item.date);
+      if (startDate && date < startDate) return false;
+      if (endDate && date > endDate) return false;
+      return true;
+    });
+  },
+  
+  // Get date range for time window selection
+  getDateRange(windowId) {
+    const ranges = {
+      'ALL': [null, null],
+      '2020': [new Date('2020-01-01'), new Date('2020-12-31')],
+      '2021': [new Date('2021-01-01'), new Date('2021-12-31')],
+      '2022': [new Date('2022-01-01'), new Date('2022-12-31')],
+      '2023': [new Date('2023-01-01'), new Date('2023-12-31')],
+      '2024': [new Date('2024-01-01'), new Date('2024-12-31')],
+      '2025': [new Date('2025-01-01'), new Date('2025-12-31')],
+      'TRUMP1': [new Date('2017-01-20'), new Date('2021-01-20')],
+      'BIDEN': [new Date('2021-01-20'), new Date('2025-01-20')],
+      'TRUMP2': [new Date('2025-01-20'), null]
+    };
+    return ranges[windowId] || [null, null];
+  },
+
+  // Build a lookup map of Date -> ADIZ value (optionally smoothed).
+  // Uses the same smoothing logic as the baseline trace so markers can sit
+  // exactly on the displayed ADIZ line height for that day.
+  buildAdizValueMap(baselineData, smooth = true) {
+    const dates = baselineData.map(d => d.Date);
+    const counts = baselineData.map(d => parseInt(d.ADIZ_count) || 0);
+    const values = smooth ? this.calculateMovingAvg(counts) : counts;
+
+    const map = Object.create(null);
+    for (let i = 0; i < dates.length; i++) {
+      map[dates[i]] = values[i];
+    }
+    return map;
+  }
+};
+
+// ============================================================================
+// CHART MANAGER MODULE
+// ============================================================================
+const ChartManager = {
+  plotDiv: null,
+  currentTraces: [],
+  
+  init(divId) {
+    this.plotDiv = document.getElementById(divId);
+  },
+  
+  // Create baseline ADIZ trace
+  createBaselineTrace(data, smooth = true) {
+    const dates = data.map(d => d.Date);
+    const counts = data.map(d => parseInt(d.ADIZ_count) || 0);
+    const values = smooth ? Utils.calculateMovingAvg(counts) : counts;
+    
+    return {
+      x: dates,
+      y: values,
+      type: 'scatter',
+      mode: 'lines',
+      name: smooth ? 'ADIZ Count (7-day avg)' : 'ADIZ Count',
+      line: {
+        color: '#ff6b35',
+        width: smooth ? 3 : 2
+      },
+      // No underlay fill: keep the baseline clean so event overlays pop.
+      fill: 'none',
+      hovertemplate: '<b>%{x}</b><br>Incursions: %{y:.1f}<extra></extra>'
+    };
+  },
+  
+  // Create event markers
+  createEventMarkers(events, config, adizValueMap = null) {
+    // Normalize date field
+    const dates = events.map(e => e.date || e.Date);
+
+    // Place each marker at the ADIZ value for that date (so markers "ride" the line)
+    const yValues = adizValueMap
+      ? dates.map(d => (adizValueMap[d] ?? 0))
+      : Array(dates.length).fill(0);
+
+    // Emoji to display on the chart (one per event point)
+    const emoji = config.emoji || '•';
+    const emojis = Array(dates.length).fill(emoji);
+
+    // Build hover + title content by category
+    const category = config.category || 'event';
+
+    // "title" is used only if we want a short label in hover; for emoji traces, it isn't shown on the chart.
+    let titles = [];
+    let customdata = [];
+    let hovertemplate = '';
+
+    if (category === 'arms') {
+      titles = events.map(e => e.weapon_sale || e.event_name || 'Arms Sale');
+      customdata = events.map(e => ([
+        e.value_display || '',
+        e.domain || '',
+        e.package_type || '',
+        e.lethality_type || '',
+        e.date_type || '',
+        e.us_administration || '',
+        e.source_hint || ''
+      ]));
+      hovertemplate =
+        '<b>💰 Arms Sale</b><br>' +
+        '%{x}<br>' +
+        '<b>Package:</b> %{customdata[2]}<br>' +
+        '<b>Value:</b> %{customdata[0]}<br>' +
+        '<b>Domain:</b> %{customdata[1]}<br>' +
+        '<b>Type:</b> %{customdata[3]}<br>' +
+        '<b>Date type:</b> %{customdata[4]}<br>' +
+        '<b>Admin:</b> %{customdata[5]}<br>' +
+        '<b>Source:</b> %{customdata[6]}<br>' +
+        '<b>Details:</b> %{customdata_title}' +
+        '<extra></extra>';
+    } else if (category === 'diplomatic') {
+      titles = events.map(e => e.Descriptor || e.event_name || 'Diplomatic Meeting');
+      customdata = events.map(e => ([
+        e.Meeting_Location || '',
+        e.US_Official_Level || '',
+        e.Meeting_Status || '',
+        e.TW_Level || '',
+        e.Country_Original || ''
+      ]));
+      hovertemplate =
+        '<b>🤝 Diplomatic Meeting</b><br>' +
+        '%{x}<br>' +
+        '<b>Location:</b> %{customdata[0]}<br>' +
+        '<b>US level:</b> %{customdata[1]}<br>' +
+        '<b>Status:</b> %{customdata[2]}<br>' +
+        '<b>TW level:</b> %{customdata[3]}<br>' +
+        '<b>Country:</b> %{customdata[4]}<br>' +
+        '<b>Summary:</b> %{customdata_title}' +
+        '<extra></extra>';
+    } else if (category === 'bills') {
+      titles = events.map(e => `${e.Bill_ID || 'Bill'} — ${e.Milestone || ''}`.trim());
+      customdata = events.map(e => ([
+        e.Bill_ID || '',
+        e.Milestone || ''
+      ]));
+      hovertemplate =
+        '<b>📜 Taiwan-Related Bill</b><br>' +
+        '%{x}<br>' +
+        '<b>Bill:</b> %{customdata[0]}<br>' +
+        '<b>Milestone:</b> %{customdata[1]}' +
+        '<extra></extra>';
+    } else if (category === 'ships') {
+      titles = events.map(e => e.Label ? e.Label.replace(/<br>/g, ' • ') : (e.event_name || 'Ship Transit'));
+      customdata = events.map(e => ([
+        e.Country || '',
+        e.Ship_Type || '',
+        e.Label || ''
+      ]));
+      hovertemplate =
+        '<b>🚢 Ship Transit</b><br>' +
+        '%{x}<br>' +
+        '%{customdata[2]}' +
+        '<extra></extra>';
+    } else {
+      titles = events.map(e => e.event_name || e.weapon_sale || e.Descriptor || 'Event');
+      customdata = events.map(e => ([
+        e.description || e.value_display || ''
+      ]));
+      hovertemplate =
+        '<b>Event</b><br>%{x}<br>%{customdata[0]}<extra></extra>';
+    }
+
+    // Plotly doesn't support %{customdata_title} natively; we embed the title into customdata
+    // as the final element and reference it in templates where needed.
+    // For categories with richer hover, append titles as last element.
+    if (category === 'arms') {
+      customdata = customdata.map((arr, i) => arr.concat([titles[i]]));
+      hovertemplate = hovertemplate.replace('%{customdata_title}', '%{customdata[7]}');
+    } else if (category === 'diplomatic') {
+      customdata = customdata.map((arr, i) => arr.concat([titles[i]]));
+      hovertemplate = hovertemplate.replace('%{customdata_title}', '%{customdata[5]}');
+    }
+
+    return {
+      x: dates,
+      y: yValues,
+      type: 'scatter',
+      // Emoji markers: use text mode so the glyph itself is the marker.
+      mode: 'text',
+      name: config.name,
+      text: emojis,
+      textposition: 'middle center',
+      textfont: {
+        size: config.emojiSize || 16
+      },
+      customdata: customdata,
+      hovertemplate: hovertemplate,
+      // Ensure toggling via legend works the same way as markers
+      visible: config.visible !== false
+    };
+  },
+  
+  // Create event bands (for multi-day events), color-coded by actor
+createEventBands(events, config) {
+  const actorColor = (actor) => {
+    const a = (actor || '').toString().toLowerCase();
+    const isChina = a.includes('china');
+    const isTaiwan = a.includes('taiwan');
+
+    // Default palette (soft)
+    const china = 'rgba(220, 38, 38, 0.10)';   // red
+    const taiwan = 'rgba(37, 99, 235, 0.10)';  // blue
+    const both = 'rgba(124, 58, 237, 0.10)';   // purple
+    const other = (config && config.fillcolor) || 'rgba(234, 88, 12, 0.08)';
+
+    if (isChina && isTaiwan) return both;
+    if (isChina) return china;
+    if (isTaiwan) return taiwan;
+    return other;
+  };
+
+  return events.map(e => {
+    let startDate = e.date;
+    let endDate = e.end_date || e.date;
+    if (endDate < startDate) { const t = startDate; startDate = endDate; endDate = t; }
+    return {
+      type: 'rect',
+      xref: 'x',
+      yref: 'paper',
+      x0: startDate,
+      x1: endDate,
+      y0: 0,
+      y1: 1,
+      fillcolor: actorColor(e.actor),
+      line: { width: 0 },
+      layer: 'below'
+    };
+  });
+},
+
+
+  // Create invisible hover layers for event bands (Plotly shapes don't support hover)
+  createBandHoverTraces(events, maxY) {
+    const safeMaxY = (typeof maxY === 'number' && isFinite(maxY) && maxY > 0) ? maxY : 1;
+
+    return events.map(e => {
+      let startDate = e.date;
+      let endDate = e.end_date || e.date;
+      if (endDate < startDate) { const t = startDate; startDate = endDate; endDate = t; }
+
+      const actor = e.actor || '';
+      const type = e.event_type || '';
+      const name = e.event_name || e.short_label || 'Political/Symbolic Event';
+      const desc = e.description || '';
+      const imp = e.importance || '';
+      const conf = e.date_confidence || '';
+
+      const hoverLines = [
+        '<b>🗳️ Political/Symbolic Window</b>',
+        `<b>Event:</b> ${name}`,
+        `<b>Actor:</b> ${actor}`,
+        `<b>Type:</b> ${type}`,
+        `<b>Dates:</b> ${startDate} → ${endDate}`
+      ];
+      if (desc) hoverLines.push(`<b>Notes:</b> ${desc}`);
+      if (imp) hoverLines.push(`<b>Importance:</b> ${imp}`);
+      if (conf) hoverLines.push(`<b>Confidence:</b> ${conf}`);
+
+      const hoverText = hoverLines.join('<br>');
+
+      // Invisible polygon covering the band area (captures hover)
+      return {
+        x: [startDate, startDate, endDate, endDate, startDate],
+        y: [0, safeMaxY, safeMaxY, 0, 0],
+        type: 'scatter',
+        mode: 'lines',
+        fill: 'toself',
+        fillcolor: 'rgba(0,0,0,0)',  // invisible
+        line: { width: 0 },
+        opacity: 0.001,             // keep near-zero but hoverable
+        hoveron: 'fills',
+        showlegend: false,
+        name: '',
+        text: hoverText,
+        hovertemplate: '%{text}<extra></extra>'
+      };
+    });
+  },
+
+  
+  // Render the chart
+  render(traces, shapes = []) {
+    const layout = {
+      title: {
+        text: 'Chinese Military Aircraft ADIZ Incursions Over Time',
+        font: { size: 20, weight: 600 }
+      },
+      xaxis: {
+        title: 'Date',
+        type: 'date',
+        showgrid: true,
+        gridcolor: '#e5e7eb'
+      },
+      yaxis: {
+        title: 'Number of Aircraft',
+        showgrid: true,
+        gridcolor: '#e5e7eb',
+        rangemode: 'tozero'
+      },
+      hovermode: 'closest',
+      showlegend: true,
+      legend: {
+        x: 1,
+        xanchor: 'right',
+        y: 1,
+        bgcolor: 'rgba(255,255,255,0.9)',
+        bordercolor: '#e5e7eb',
+        borderwidth: 1
+      },
+      margin: { l: 60, r: 60, t: 80, b: 60 },
+      shapes: shapes,
+      plot_bgcolor: '#fafafa',
+      paper_bgcolor: '#ffffff'
+    };
+    
+    const config = {
+      responsive: true,
+      displayModeBar: true,
+      displaylogo: false,
+      modeBarButtonsToRemove: ['lasso2d', 'select2d']
+    };
+    
+    // Remove the initial loading overlay (if present)
+    const loader = this.plotDiv.querySelector('.loading');
+    if (loader) loader.remove();
+
+    Plotly.newPlot(this.plotDiv, traces, layout, config);
+  },
+  
+  // Update specific traces
+  updateTraces(traceIndices, update) {
+    Plotly.restyle(this.plotDiv, update, traceIndices);
+  }
+};
+
+// ============================================================================
+// FILTER MANAGER MODULE
+// ============================================================================
+const FilterManager = {
+  state: {
+    baseline: true,
+    smooth: true,
+    timeWindow: 'ALL',
+
+    arms: false,
+    armsSelectFilters: {},
+
+    diplomatic: false,
+    diplomaticFilters: { locUSA: true, locTaiwan: true, high: true, medium: true, low: true, former: true },
+
+    bills: false,
+    billsFilters: { introduced: true, passed: true, law: true },
+
+    ships: false,
+    shipsSelectFilters: {},
+
+    political: false,
+    politicalFilters: {
+      actorChina: true,
+      actorTaiwan: true,
+      actorBoth: true,
+      typePolitical: true,
+      typeSymbolic: true,
+      typeMilitary: true
+    }
+  },
+
+  // Generic "select" filter: each key is a column name, value is selected option or 'ALL'
+  _applySelectFilters(row, selectFilters) {
+    if (!selectFilters) return true;
+    for (const [col, selected] of Object.entries(selectFilters)) {
+      if (!selected || selected === 'ALL') continue;
+      const v = (row[col] ?? '').toString();
+      if (v !== selected) return false;
+    }
+    return true;
+  },
+
+  // Filter arms sales data (dynamic by columns)
+  filterArms(data) {
+    return data.filter(item => this._applySelectFilters(item, this.state.armsSelectFilters));
+  },
+
+  // Filter diplomatic meetings
+  filterDiplomatic(data) {
+    return data.filter(item => {
+      // location
+      const loc = (item.Meeting_Location || '').toString().toLowerCase();
+      const isUSA = loc.includes('usa') || loc.includes('united states') || loc.includes('washington') || loc.includes('new york');
+      const isTaiwan = loc.includes('taiwan') || loc.includes('taipei') || loc.includes('kaohsiung');
+      // Use explicit strings first (your dataset uses 'USA'/'Taiwan')
+      if ((item.Meeting_Location || '').toString() === 'USA' && !this.state.diplomaticFilters.locUSA) return false;
+      if ((item.Meeting_Location || '').toString() === 'Taiwan' && !this.state.diplomaticFilters.locTaiwan) return false;
+      // Fallback heuristics if location text differs
+      if (!((item.Meeting_Location || '').toString() === 'USA' || (item.Meeting_Location || '').toString() === 'Taiwan')) {
+        if (isUSA && !this.state.diplomaticFilters.locUSA) return false;
+        if (isTaiwan && !this.state.diplomaticFilters.locTaiwan) return false;
+      }
+
+      // US official level
+      const level = (item.US_Official_Level || '').toString();
+      if (level === 'High' && !this.state.diplomaticFilters.high) return false;
+      if (level === 'Medium' && !this.state.diplomaticFilters.medium) return false;
+      if (level === 'Low' && !this.state.diplomaticFilters.low) return false;
+      if (level === 'Former' && !this.state.diplomaticFilters.former) return false;
+
+      return true;
+    });
+  },
+
+  // Filter bills
+  filterBills(data) {
+    return data.filter(item => {
+      const milestone = item.Milestone || '';
+      if (milestone === 'Introduced' && !this.state.billsFilters.introduced) return false;
+      if (milestone === 'Passed' && !this.state.billsFilters.passed) return false;
+      if ((milestone === 'Became law' || milestone === 'Became Law') && !this.state.billsFilters.law) return false;
+      return true;
+    });
+  },
+
+  // Filter ships (dynamic by columns; UI uses Country + Ship_Type)
+  filterShips(data) {
+    return data.filter(item => this._applySelectFilters(item, this.state.shipsSelectFilters));
+  },
+
+  // Filter political/symbolic events
+  filterPolitical(data) {
+    return data.filter(item => {
+      const actor = (item.actor || '').toString();
+      const type = (item.event_type || '').toString();
+
+      const isChinaOnly = actor === 'China';
+      const isTaiwanOnly = actor === 'Taiwan';
+      const isBoth = actor.includes('China') && actor.includes('Taiwan');
+
+      if (isChinaOnly && !this.state.politicalFilters.actorChina) return false;
+      if (isTaiwanOnly && !this.state.politicalFilters.actorTaiwan) return false;
+      if (isBoth && !this.state.politicalFilters.actorBoth) return false;
+
+      if (type.toLowerCase().includes('political') && !this.state.politicalFilters.typePolitical) return false;
+      if (type.toLowerCase().includes('symbolic') && !this.state.politicalFilters.typeSymbolic) return false;
+      if (type.toLowerCase().includes('military') && !this.state.politicalFilters.typeMilitary) return false;
+
+      // If it's some other type, let it through (future-proof)
+      return true;
+    });
+  }
+};
+
+// ============================================================================
+// DYNAMIC FILTER UI BUILDER
+// Builds select dropdown filters from embedded datasets (no-code expansion)
+// ============================================================================
+const FilterUIBuilder = {
+  // Columns that are usually too verbose for dropdowns
+  _defaultSkipCols: new Set(['weapon_sale', 'Descriptor', 'Label', 'case_id', 'source_hint']),
+
+  _titleize(col) {
+    return col.replace(/_/g, ' ')
+              .replace(/\w/g, c => c.toUpperCase());
+  },
+
+  _uniqueValues(rows, col) {
+    const s = new Set();
+    rows.forEach(r => {
+      const v = (r[col] ?? '').toString().trim();
+      if (v) s.add(v);
+    });
+    return Array.from(s).sort((a,b) => a.localeCompare(b));
+  },
+
+  _buildSelect({ container, col, values, label }) {
+    const wrap = document.createElement('div');
+    wrap.className = 'sub-filter';
+    wrap.style.display = 'flex';
+    wrap.style.flexDirection = 'column';
+    wrap.style.alignItems = 'stretch';
+    wrap.style.gap = '6px';
+
+    const l = document.createElement('label');
+    l.textContent = label;
+    l.style.fontWeight = '600';
+    l.style.fontSize = '0.82rem';
+    l.style.color = 'var(--text-muted)';
+
+    const sel = document.createElement('select');
+    sel.setAttribute('data-col', col);
+
+    const optAll = document.createElement('option');
+    optAll.value = 'ALL';
+    optAll.textContent = 'All';
+    sel.appendChild(optAll);
+
+    values.forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v;
+      opt.textContent = v;
+      sel.appendChild(opt);
+    });
+
+    wrap.appendChild(l);
+    wrap.appendChild(sel);
+    container.appendChild(wrap);
+  },
+
+  build(data) {
+    // Arms sales: build filters for every column that is "dropdown friendly"
+    const armsContainer = document.getElementById('arms-dynamic-filters');
+    if (armsContainer) armsContainer.innerHTML = '';
+    const armsRows = (data && data.arms_sales) ? data.arms_sales : [];
+    if (armsContainer && armsRows.length) {
+      const cols = Object.keys(armsRows[0] || {});
+      cols.forEach(col => {
+        if (this._defaultSkipCols.has(col)) return;
+
+        const values = this._uniqueValues(armsRows, col);
+
+        // Heuristics: keep UI usable
+        if (values.length <= 1) return;
+        if (values.length > 25) return; // too many options
+        const avgLen = values.reduce((s,v)=>s+v.length,0)/values.length;
+        if (avgLen > 40) return;
+
+        this._buildSelect({
+          container: armsContainer,
+          col,
+          values,
+          label: this._titleize(col)
+        });
+      });
+    }
+
+    // Ships: keep simple, always country + type if present
+    const shipsContainer = document.getElementById('ships-dynamic-filters');
+    if (shipsContainer) shipsContainer.innerHTML = '';
+    const shipRows = (data && data.ships) ? data.ships : [];
+    if (shipsContainer && shipRows.length) {
+      ['Country','Ship_Type'].forEach(col => {
+        if (!(col in shipRows[0])) return;
+        const values = this._uniqueValues(shipRows, col);
+        if (values.length <= 1) return;
+        if (values.length > 40) return;
+        this._buildSelect({
+          container: shipsContainer,
+          col,
+          values,
+          label: this._titleize(col)
+        });
+      });
+    }
+  }
+};
+
+// ============================================================================
+// UI CONTROLLER MODULE
+// ============================================================================
+const UIController = {
+  init() {
+    // Wire up parent toggle checkboxes
+    document.querySelectorAll('.parent-toggle').forEach(toggle => {
+      const targetId = toggle.id.replace('toggle-', '') + '-filters';
+      const subFilters = document.getElementById(targetId);
+      
+      toggle.addEventListener('change', () => {
+        if (subFilters) {
+          subFilters.classList.toggle('active', toggle.checked);
+        }
+        this.handleUpdate();
+      });
+    });
+    
+    // Wire up all filter checkboxes
+    document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', () => this.handleUpdate());
+    });
+    
+    // Wire up select dropdowns
+    document.querySelectorAll('select').forEach(select => {
+      select.addEventListener('change', () => this.handleUpdate());
+    });
+
+    // Collapsible sections (default collapsed; toggle options visibility)
+    const setExpanded = (section, expanded) => {
+      section.classList.toggle('collapsed', !expanded);
+      const btn = section.querySelector('.collapse-btn');
+      if (btn) btn.setAttribute('aria-expanded', String(expanded));
+    };
+
+    document.querySelectorAll('.control-section').forEach(section => {
+      const btn = section.querySelector('.collapse-btn');
+      if (!btn) return;
+
+      // Initialize aria state from class
+      btn.setAttribute('aria-expanded', String(!section.classList.contains('collapsed')));
+
+      btn.addEventListener('click', () => {
+        const expanded = section.classList.contains('collapsed');
+        setExpanded(section, expanded);
+        // Plotly can mis-measure height after layout shifts; force a resize.
+        try { Plotly.Plots.resize(document.getElementById('plotly-chart')); } catch(e) {}
+      });
+    });
+  },
+  
+  // Collect current state from UI
+  collectState() {
+  const collectDynamicSelects = (containerId) => {
+    const container = document.getElementById(containerId);
+    const out = {};
+    if (!container) return out;
+    container.querySelectorAll('select[data-col]').forEach(sel => {
+      const col = sel.getAttribute('data-col');
+      const val = sel.value;
+      out[col] = val; // 'ALL' means no filter
+    });
+    return out;
+  };
+
+  FilterManager.state = {
+    baseline: document.getElementById('toggle-baseline').checked,
+    smooth: document.getElementById('toggle-smooth').checked,
+    timeWindow: document.getElementById('time-window').value,
+
+    arms: document.getElementById('toggle-arms').checked,
+    armsSelectFilters: collectDynamicSelects('arms-dynamic-filters'),
+
+    diplomatic: document.getElementById('toggle-diplomatic').checked,
+    diplomaticFilters: {
+      locUSA: document.getElementById('dip-loc-usa').checked,
+      locTaiwan: document.getElementById('dip-loc-taiwan').checked,
+      high: document.getElementById('dip-high').checked,
+      medium: document.getElementById('dip-medium').checked,
+      low: document.getElementById('dip-low').checked,
+      former: document.getElementById('dip-former').checked
+    },
+
+    bills: document.getElementById('toggle-bills').checked,
+    billsFilters: {
+      introduced: document.getElementById('bill-introduced').checked,
+      passed: document.getElementById('bill-passed').checked,
+      law: document.getElementById('bill-law').checked
+    },
+
+    ships: document.getElementById('toggle-ships').checked,
+    shipsSelectFilters: collectDynamicSelects('ships-dynamic-filters'),
+
+    political: document.getElementById('toggle-political').checked,
+    politicalFilters: {
+      actorChina: document.getElementById('pol-actor-china').checked,
+      actorTaiwan: document.getElementById('pol-actor-taiwan').checked,
+      actorBoth: document.getElementById('pol-actor-both').checked,
+      typePolitical: document.getElementById('pol-type-political').checked,
+      typeSymbolic: document.getElementById('pol-type-symbolic').checked,
+      typeMilitary: document.getElementById('pol-type-military').checked
+    }
+  };
+},
+  
+  // Handle any UI update
+  handleUpdate() {
+    this.collectState();
+    App.render();
+  }
+};
+
+// ============================================================================
+// MAIN APPLICATION MODULE
+// ============================================================================
+const App = {
+  data: null,
+  
+  async init() {
+    // Load data
+    await this.loadData();
+
+    // Build dynamic filter UIs from the embedded datasets
+    FilterUIBuilder.build(this.data);
+    
+    // Initialize modules
+    ChartManager.init('plotly-chart');
+    UIController.init();
+    
+    // Initial render
+    this.render();
+  },
+  
+  async loadData() {
+    // Use embedded data for self-contained distribution
+    this.data = DATA;
+  },
+  
+  render() {
+    const traces = [];
+    const shapes = [];
+    const [startDate, endDate] = Utils.getDateRange(FilterManager.state.timeWindow);
+
+    // Always build an ADIZ date->value map (filtered to the active time window)
+    // so event markers can be vertically aligned to ADIZ activity.
+    let baselineDataForMap = this.data.adiz_baseline;
+    if (startDate || endDate) {
+      baselineDataForMap = Utils.filterByDateRange(baselineDataForMap, startDate, endDate);
+    }
+    const adizValueMap = Utils.buildAdizValueMap(baselineDataForMap, FilterManager.state.smooth);
+    const maxYForBands = Math.max(1, ...Object.values(adizValueMap || {}));
+    
+    // 1. Baseline ADIZ trace
+    if (FilterManager.state.baseline) {
+      traces.push(ChartManager.createBaselineTrace(baselineDataForMap, FilterManager.state.smooth));
+    }
+    
+    // 2. Arms sales markers
+    if (FilterManager.state.arms && this.data.arms_sales) {
+      let armsData = FilterManager.filterArms(this.data.arms_sales);
+      if (startDate || endDate) {
+        armsData = Utils.filterByDateRange(armsData, startDate, endDate);
+      }
+      traces.push(ChartManager.createEventMarkers(armsData, {
+        name: 'Arms Sales',
+        category: 'arms',
+        emoji: '💰',
+        emojiSize: 16
+      }, adizValueMap));
+    }
+    
+    // 3. Diplomatic meetings
+    if (FilterManager.state.diplomatic && this.data.diplomatic) {
+      let dipData = FilterManager.filterDiplomatic(this.data.diplomatic);
+      if (startDate || endDate) {
+        dipData = Utils.filterByDateRange(dipData, startDate, endDate);
+      }
+      traces.push(ChartManager.createEventMarkers(dipData, {
+        name: 'Diplomatic Meetings',
+        category: 'diplomatic',
+        emoji: '🤝',
+        emojiSize: 16
+      }, adizValueMap));
+    }
+    
+    // 4. Bills
+    if (FilterManager.state.bills && this.data.bills) {
+      let billsData = FilterManager.filterBills(this.data.bills);
+      if (startDate || endDate) {
+        billsData = Utils.filterByDateRange(billsData, startDate, endDate);
+      }
+      traces.push(ChartManager.createEventMarkers(billsData, {
+        name: 'Legislative Bills',
+        category: 'bills',
+        emoji: '📜',
+        emojiSize: 16
+      }, adizValueMap));
+    }
+    
+    // 5. Ships
+    if (FilterManager.state.ships && this.data.ships) {
+      let shipsData = FilterManager.filterShips(this.data.ships);
+      if (startDate || endDate) {
+        shipsData = Utils.filterByDateRange(shipsData, startDate, endDate);
+      }
+      traces.push(ChartManager.createEventMarkers(shipsData, {
+        name: 'Ship Transits',
+        category: 'ships',
+        emoji: '🚢',
+        emojiSize: 16
+      }, adizValueMap));
+    }
+    
+    // 6. Political/Symbolic events (as bands)
+    if (FilterManager.state.political && this.data.political_symbolic) {
+      let polData = FilterManager.filterPolitical(this.data.political_symbolic);
+      if (startDate || endDate) {
+        polData = Utils.filterByDateRange(polData, startDate, endDate);
+      }
+      const polShapes = ChartManager.createEventBands(polData, {
+        fillcolor: 'rgba(234, 88, 12, 0.08)'
+      });
+      shapes.push(...polShapes);
+      // Add invisible hover layer so the band explains itself on hover
+      traces.push(...ChartManager.createBandHoverTraces(polData, maxYForBands));
+    }
+    
+    // Render
+    ChartManager.render(traces, shapes);
+  }
+};
+
+// ============================================================================
+// INITIALIZE ON PAGE LOAD
+// ============================================================================
+document.addEventListener('DOMContentLoaded', () => {
+  App.init();
+});
+  </script>
+</body>
+</html>
