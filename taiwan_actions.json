@@ -1,0 +1,290 @@
+[
+  {
+    "date": "2021-07-28",
+    "event_name": "Taiwan Coast Guard Intercepts Chinese Sand Dredgers Near Matsu Islands",
+    "dime_category": "Military",
+    "description": "Taiwan Coast Guard Intercepts Chinese Sand Dredgers Near Matsu Islands"
+  },
+  {
+    "date": "2021-09-15",
+    "event_name": "TSMC & UMC Expand Overseas Foundry Plans (US, Japan, Germany)",
+    "dime_category": "Diplomatic",
+    "description": "TSMC & UMC Expand Overseas Foundry Plans (US, Japan, Germany)"
+  },
+  {
+    "date": "2021-11-01",
+    "event_name": "TSMC Announces $12 Billion Fab in Arizona.",
+    "dime_category": "Economic",
+    "description": "TSMC Announces $12 Billion Fab in Arizona."
+  },
+  {
+    "date": "2021-11-15",
+    "event_name": "TSMC Announces $12B Arizona Fab",
+    "dime_category": "Economic",
+    "description": "TSMC Announces $12B Arizona Fab"
+  },
+  {
+    "date": "2022-05-09",
+    "event_name": "Han Kuang 38 Military Exercise (Urban & Asymmetric Defense)",
+    "dime_category": "Military",
+    "description": "Han Kuang 38 Military Exercise (Urban & Asymmetric Defense)"
+  },
+  {
+    "date": "2022-05-19",
+    "event_name": "Taiwan Approves Renewable Energy Plan to Reduce China Dependence",
+    "dime_category": "Economic",
+    "description": "Taiwan Approves Renewable Energy Plan to Reduce China Dependence"
+  },
+  {
+    "date": "2022-06-01",
+    "event_name": "Taiwan Fires AIM-120 AMRAAM from F-16V During Live Combat Exercise",
+    "dime_category": "Military",
+    "description": "Taiwan Fires AIM-120 AMRAAM from F-16V During Live Combat Exercise"
+  },
+  {
+    "date": "2022-06-07",
+    "event_name": "Taiwan Fires AIM-120 AMRAAM from F-16V",
+    "dime_category": "Military",
+    "description": "Taiwan Fires AIM-120 AMRAAM from F-16V"
+  },
+  {
+    "date": "2022-06-21",
+    "event_name": "Taiwan Launches Indigenous Combat & Surveillance Drone Program",
+    "dime_category": "Military",
+    "description": "Taiwan Launches Indigenous Combat & Surveillance Drone Program"
+  },
+  {
+    "date": "2022-07-26",
+    "event_name": "Taiwan Tests Hsiung Feng III Missile",
+    "dime_category": "Military",
+    "description": "Taiwan Tests Hsiung Feng III Missile"
+  },
+  {
+    "date": "2022-08-01",
+    "event_name": "Taiwan Rejects PRC's White Paper on 'Peaceful Reunification,' Calls It 'Delusional'",
+    "dime_category": "Informational",
+    "description": "Taiwan Rejects PRC's White Paper on 'Peaceful Reunification,' Calls It 'Delusional'"
+  },
+  {
+    "date": "2022-08-02",
+    "event_name": "Nancy Pelosi Visits Taiwan; PRC Military Drills",
+    "dime_category": "Informational",
+    "description": "Nancy Pelosi Visits Taiwan; PRC Military Drills"
+  },
+  {
+    "date": "2022-08-10",
+    "event_name": "Taiwan Rejects PRC White Paper on Peaceful Reunification",
+    "dime_category": "Military",
+    "description": "Taiwan Rejects PRC White Paper on Peaceful Reunification"
+  },
+  {
+    "date": "2022-10-01",
+    "event_name": "Tsai Ing-wen‚Äôs Double Ten Day Speech: First clear rejection of PRC sovereignty claims.",
+    "dime_category": "Informational",
+    "description": "Tsai Ing-wen‚Äôs Double Ten Day Speech: First clear rejection of PRC sovereignty claims."
+  },
+  {
+    "date": "2022-10-10",
+    "event_name": "Tsai Ing-wen Double Ten Day Speech Rejects PRC Sovereignty Claims",
+    "dime_category": "Diplomatic",
+    "description": "Tsai Ing-wen Double Ten Day Speech Rejects PRC Sovereignty Claims"
+  },
+  {
+    "date": "2022-10-18",
+    "event_name": "Taiwan Pushes for UN Re-Engagement",
+    "dime_category": "Informational",
+    "description": "Taiwan Pushes for UN Re-Engagement"
+  },
+  {
+    "date": "2022-11-04",
+    "event_name": "Taiwan Restricts Chinese Investment in Critical Infrastructure & AI",
+    "dime_category": "Diplomatic",
+    "description": "Taiwan Restricts Chinese Investment in Critical Infrastructure & AI"
+  },
+  {
+    "date": "2022-12-01",
+    "event_name": "Taiwan Extends Mandatory Military Service to One Year: First major shift in defense policy since 1997.",
+    "dime_category": "Informational",
+    "description": "Taiwan Extends Mandatory Military Service to One Year: First major shift in defense policy since 1997."
+  },
+  {
+    "date": "2022-12-27",
+    "event_name": "Taiwan Extends Mandatory Military Service to One Year",
+    "dime_category": "Military",
+    "description": "Taiwan Extends Mandatory Military Service to One Year"
+  },
+  {
+    "date": "2023-01-01",
+    "event_name": "Tsai Tells PLA 'The Taiwan Strait Is Not China's Internal Waters,' Calling Out PRC's False Narrative",
+    "dime_category": "Informational",
+    "description": "Tsai Tells PLA 'The Taiwan Strait Is Not China's Internal Waters,' Calling Out PRC's False Narrative"
+  },
+  {
+    "date": "2023-01-03",
+    "event_name": "Tsai Declares Taiwan Strait Is Not China‚Äôs Internal Waters",
+    "dime_category": "Military",
+    "description": "Tsai Declares Taiwan Strait Is Not China‚Äôs Internal Waters"
+  },
+  {
+    "date": "2023-03-18",
+    "event_name": "Youth Climate & Energy Security Protests",
+    "dime_category": "Informational",
+    "description": "Youth Climate & Energy Security Protests"
+  },
+  {
+    "date": "2023-04-01",
+    "event_name": "Taiwan Introduces Civilian Defense Mobilization Plan: Government launches training programs for civilians, incorporating urban warfare and asymmetric tactics.",
+    "dime_category": "Informational",
+    "description": "Taiwan Introduces Civilian Defense Mobilization Plan: Government launches training programs for civilians, incorporating urban warfare and asymmetric tactics."
+  },
+  {
+    "date": "2023-04-05",
+    "event_name": "Tsai Meets Kevin McCarthy; PRC Joint Sword 2023 Drills",
+    "dime_category": "Informational",
+    "description": "Tsai Meets Kevin McCarthy; PRC Joint Sword 2023 Drills"
+  },
+  {
+    "date": "2023-04-05",
+    "event_name": "First Taiwanese President‚ÄìUS Speaker Meeting on US Soil",
+    "dime_category": "Informational",
+    "description": "First Taiwanese President‚ÄìUS Speaker Meeting on US Soil"
+  },
+  {
+    "date": "2023-04-08",
+    "event_name": "Taiwan Condemns PRC Joint Sword 2023 Drills",
+    "dime_category": "Diplomatic",
+    "description": "Taiwan Condemns PRC Joint Sword 2023 Drills"
+  },
+  {
+    "date": "2023-04-12",
+    "event_name": "Taiwan Launches Civilian Defense Mobilization Program",
+    "dime_category": "Military",
+    "description": "Taiwan Launches Civilian Defense Mobilization Program"
+  },
+  {
+    "date": "2023-05-01",
+    "event_name": "Taiwan Expands Semiconductor Diplomacy with US, Japan, EU",
+    "dime_category": "Diplomatic",
+    "description": "Taiwan Expands Semiconductor Diplomacy with US, Japan, EU"
+  },
+  {
+    "date": "2023-05-22",
+    "event_name": "Han Kuang 39 Military Exercise",
+    "dime_category": "Military",
+    "description": "Han Kuang 39 Military Exercise"
+  },
+  {
+    "date": "2023-06-13",
+    "event_name": "Joint Army‚ÄìNavy‚ÄìAir Force Live-Fire Missile Exercises",
+    "dime_category": "Military",
+    "description": "Joint Army‚ÄìNavy‚ÄìAir Force Live-Fire Missile Exercises"
+  },
+  {
+    "date": "2023-06-20",
+    "event_name": "Taiwan Strengthens Silicon Shield Policy",
+    "dime_category": "Military",
+    "description": "Taiwan Strengthens Silicon Shield Policy"
+  },
+  {
+    "date": "2023-07-01",
+    "event_name": "Taiwan Coast Guard Seizes Chinese Fishing Boats Near Penghu Islands.",
+    "dime_category": "Military",
+    "description": "Taiwan Coast Guard Seizes Chinese Fishing Boats Near Penghu Islands."
+  },
+  {
+    "date": "2023-07-05",
+    "event_name": "Taiwan Coast Guard Seizes Chinese Fishing Boats Near Penghu",
+    "dime_category": "Economic",
+    "description": "Taiwan Coast Guard Seizes Chinese Fishing Boats Near Penghu"
+  },
+  {
+    "date": "2023-08-01",
+    "event_name": "Taiwan Conducts Live AIM-120 Missile Shots from F-16V Over Taiwan Strait",
+    "dime_category": "Military",
+    "description": "Taiwan Conducts Live AIM-120 Missile Shots from F-16V Over Taiwan Strait"
+  },
+  {
+    "date": "2023-08-03",
+    "event_name": "Taiwan Restricts PRC Tech & Infrastructure Investments",
+    "dime_category": "Military",
+    "description": "Taiwan Restricts PRC Tech & Infrastructure Investments"
+  },
+  {
+    "date": "2023-08-23",
+    "event_name": "Live AIM-120 Missile Shots from F-16V",
+    "dime_category": "Military",
+    "description": "Live AIM-120 Missile Shots from F-16V"
+  },
+  {
+    "date": "2023-10-10",
+    "event_name": "Double Ten Speech Emphasizes Taiwan Identity",
+    "dime_category": "Military",
+    "description": "Double Ten Speech Emphasizes Taiwan Identity"
+  },
+  {
+    "date": "2024-01-13",
+    "event_name": "Lai Ching-te Elected President",
+    "dime_category": "Informational",
+    "description": "Lai Ching-te Elected President"
+  },
+  {
+    "date": "2024-01-24",
+    "event_name": "Taiwan Responds to Joint Sword 2024A Drills",
+    "dime_category": "Informational",
+    "description": "Taiwan Responds to Joint Sword 2024A Drills"
+  },
+  {
+    "date": "2024-02-01",
+    "event_name": "Taiwan Expands Energy Security Policies",
+    "dime_category": "Informational",
+    "description": "Taiwan Expands Energy Security Policies"
+  },
+  {
+    "date": "2024-02-01",
+    "event_name": "Lai Ching-te Warns PRC Against Using Military Coercion, Calls for 'Peaceful and Equal Dialogue'",
+    "dime_category": "Informational",
+    "description": "Lai Ching-te Warns PRC Against Using Military Coercion, Calls for 'Peaceful and Equal Dialogue'"
+  },
+  {
+    "date": "2024-02-15",
+    "event_name": "Taiwan Implements LNG & Energy Independence Measures",
+    "dime_category": "Economic",
+    "description": "Taiwan Implements LNG & Energy Independence Measures"
+  },
+  {
+    "date": "2024-02-18",
+    "event_name": "Lai Warns PRC Against Military Coercion",
+    "dime_category": "Informational",
+    "description": "Lai Warns PRC Against Military Coercion"
+  },
+  {
+    "date": "2024-02-20",
+    "event_name": "Taiwan Reinforces Offshore Island Defenses",
+    "dime_category": "Military",
+    "description": "Taiwan Reinforces Offshore Island Defenses"
+  },
+  {
+    "date": "2024-03-01",
+    "event_name": "Taiwan Test Fires New Indigenous Anti-Ship Missile Near East Coast",
+    "dime_category": "Military",
+    "description": "Taiwan Test Fires New Indigenous Anti-Ship Missile Near East Coast"
+  },
+  {
+    "date": "2024-03-12",
+    "event_name": "Taiwan Test Fires Indigenous Anti-Ship Missile",
+    "dime_category": "Military",
+    "description": "Taiwan Test Fires Indigenous Anti-Ship Missile"
+  },
+  {
+    "date": "2024-10-10",
+    "event_name": "Lai Ching-te Double Ten Speech Declares Taiwan Sovereignty",
+    "dime_category": "Military",
+    "description": "Lai Ching-te Double Ten Speech Declares Taiwan Sovereignty"
+  },
+  {
+    "date": "2025-03-13",
+    "event_name": "President Lai holds press conference following high-level national security meeting",
+    "dime_category": "Informational",
+    "description": "President Lai holds press conference following high-level national security meeting"
+  }
+]

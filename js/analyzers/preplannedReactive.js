@@ -38,7 +38,7 @@ const PreplannedReactive = {
     const signals = {
       temporal: this.analyzeTemporalProximity(windowData),
       buildup: this.analyzePreEventBuildup(windowData, baselineStats),
-      magnitude: this.analyzeMagnitude(event, windowData, baselineStats),
+      magnitude: this.analyzeMagnitude(event, windowData, baselineStats, this.analyzeTemporalProximity(windowData).days),
       symbolic: this.analyzeSymbolicTiming(event.date),
       pattern: this.analyzePattern(windowData)
     };
@@ -158,7 +158,7 @@ const PreplannedReactive = {
    * Signal 3: Magnitude Analysis
    * Is response unusually large for this event type?
    */
-  analyzeMagnitude(event, windowData, baselineStats) {
+  analyzeMagnitude(event, windowData, baselineStats, temporalDays = null) {
     // Get similar events from same category
     const similarEvents = DataConnector.getEvents({ category: event.category });
     
@@ -185,17 +185,26 @@ const PreplannedReactive = {
     
     let reactiveScore, explanation, comparison;
     
-    if (ratio > 2.5) {
+    // COMPOUND SCORING: Large spike + close temporal proximity = VERY reactive
+    if (ratio > 2.5 && temporalDays !== null && temporalDays <= 3) {
+      comparison = 'much_larger_immediate';
+      reactiveScore = 0.95; // VERY strong reactive signal
+      explanation = `STRONG REACTION: ${ratio.toFixed(1)}x spike within ${temporalDays} days - massive spike in close temporal proximity indicates direct response`;
+    } else if (ratio > 2.0 && temporalDays !== null && temporalDays <= 5) {
+      comparison = 'large_near_immediate';
+      reactiveScore = 0.85; // Strong reactive signal
+      explanation = `Strong spike (${ratio.toFixed(1)}x) within ${temporalDays} days - large quantity in close proximity suggests reactive response`;
+    } else if (ratio > 2.5) {
       comparison = 'much_larger';
-      reactiveScore = 0.6; // Changed from 0.3 - huge spike often means strong reaction
-      explanation = `Response ${ratio.toFixed(1)}x larger than typical ${event.category} events - suggests unusually strong reaction`;
+      reactiveScore = 0.7; // Large but timing unclear
+      explanation = `Response ${ratio.toFixed(1)}x larger than typical ${event.category} events - unusually strong but timing less clear`;
     } else if (ratio > 1.5) {
       comparison = 'larger';
-      reactiveScore = 0.6; // Changed from 0.5
-      explanation = `Response ${ratio.toFixed(1)}x larger than typical - suggests strong reaction`;
+      reactiveScore = 0.6;
+      explanation = `Response ${ratio.toFixed(1)}x larger than typical - moderately strong reaction`;
     } else {
       comparison = 'typical';
-      reactiveScore = 0.7; // Reactive signal
+      reactiveScore: 0.5;
       explanation = `Response size (${thisPeak}) typical for ${event.category} events (avg: ${avgSimilarPeak.toFixed(1)})`;
     }
     
@@ -203,6 +212,7 @@ const PreplannedReactive = {
       thisPeak,
       avgSimilarPeak,
       ratio,
+      temporalDays,
       comparison,
       reactiveScore,
       explanation
@@ -211,33 +221,130 @@ const PreplannedReactive = {
   
   /**
    * Signal 4: Symbolic Timing
-   * Is event aligned with symbolic date?
+   * Check proximity to political events from data (not just hardcoded dates)
    */
   analyzeSymbolicTiming(eventDate) {
     const date = new Date(eventDate);
-    const month = date.getMonth() + 1; // JS months are 0-indexed
+    
+    // Get political events from data
+    const politicalEvents = DataConnector.getEvents({ category: 'political' }) || [];
+    
+    if (politicalEvents.length === 0) {
+      // Fallback to hardcoded symbolic dates if no political data
+      return this.checkHardcodedSymbolicDates(eventDate);
+    }
+    
+    // Check proximity to political events (within 15 days)
+    let nearbyEvents = [];
+    politicalEvents.forEach(pe => {
+      const eventDateObj = new Date(eventDate);
+      const politicalDateObj = new Date(pe.date);
+      const daysDiff = Math.abs((eventDateObj - politicalDateObj) / (1000*60*60*24));
+      
+      if (daysDiff <= 15) {
+        nearbyEvents.push({
+          ...pe,
+          daysDiff: Math.round(daysDiff)
+        });
+      }
+    });
+    
+    if (nearbyEvents.length === 0) {
+      return {
+        isSymbolic: false,
+        reactiveScore: 0.5,
+        explanation: 'No significant political events within 15 days'
+      };
+    }
+    
+    // Sort by closest
+    nearbyEvents.sort((a, b) => a.daysDiff - b.daysDiff);
+    const closest = nearbyEvents[0];
+    
+    // Categorize event type to determine if pre-planned or reactive
+    const eventType = (closest.event_type || '').toLowerCase();
+    const eventName = (closest.event_name || closest.short_label || '').toLowerCase();
+    const combinedText = eventType + ' ' + eventName;
+    
+    let reactiveScore, explanation, classification;
+    
+    // MILITARY EXERCISES are usually REACTIVE (result of event, not cause)
+    if (combinedText.includes('exercise') || combinedText.includes('drill') || 
+        combinedText.includes('maneuver')) {
+      reactiveScore = 0.7; // Suggests reactive
+      classification = 'reactive_to_exercise';
+      explanation = `Within ${closest.daysDiff} days of military exercise "${closest.event_name}" - exercises often follow provocations, suggesting reactive`;
+    }
+    // ELECTIONS suggest PRE-PLANNED (PRC times actions around Taiwan elections)
+    else if (combinedText.includes('election') || combinedText.includes('vote')) {
+      reactiveScore = 0.2; // Strongly suggests pre-planned
+      classification = 'preplanned_election';
+      explanation = `Within ${closest.daysDiff} days of Taiwan election - PRC often pre-plans demonstrations around elections`;
+    }
+    // PEOPLE'S CONGRESS / CCP MEETINGS suggest PRE-PLANNED
+    else if (combinedText.includes('congress') || combinedText.includes('ccp') || 
+             combinedText.includes('party')) {
+      reactiveScore = 0.25; // Suggests pre-planned
+      classification = 'preplanned_congress';
+      explanation = `Within ${closest.daysDiff} days of ${closest.event_name} - timing suggests pre-planned messaging`;
+    }
+    // INAUGURATION / SYMBOLIC DATES suggest PRE-PLANNED
+    else if (combinedText.includes('inauguration') || combinedText.includes('10-10') ||
+             combinedText.includes('double ten') || combinedText.includes('national day')) {
+      reactiveScore = 0.2; // Strongly suggests pre-planned
+      classification = 'preplanned_symbolic';
+      explanation = `Within ${closest.daysDiff} days of ${closest.event_name} - symbolic date suggests pre-planned`;
+    }
+    // LUNAR NEW YEAR suggests PRE-PLANNED
+    else if (combinedText.includes('lunar') || combinedText.includes('new year') ||
+             combinedText.includes('spring festival')) {
+      reactiveScore = 0.3; // Suggests pre-planned
+      classification = 'preplanned_holiday';
+      explanation = `Within ${closest.daysDiff} days of Lunar New Year period - holiday timing suggests pre-planned`;
+    }
+    // OTHER POLITICAL EVENTS - ambiguous
+    else {
+      reactiveScore = 0.4;
+      classification = 'ambiguous_political';
+      explanation = `Within ${closest.daysDiff} days of "${closest.event_name}" - timing relationship unclear`;
+    }
+    
+    return {
+      isSymbolic: true,
+      nearbyEvents,
+      closestEvent: closest,
+      classification,
+      reactiveScore,
+      explanation
+    };
+  },
+  
+  /**
+   * Fallback: Check hardcoded symbolic dates if no political data available
+   */
+  checkHardcodedSymbolicDates(eventDate) {
+    const date = new Date(eventDate);
+    const month = date.getMonth() + 1;
     const day = date.getDate();
     
-    // Check if within ±2 days of symbolic date (tightened from 3)
     const matchingSymbolic = this.SYMBOLIC_DATES.find(sd => {
       const daysDiff = Math.abs((month * 100 + day) - (sd.month * 100 + sd.day));
-      return daysDiff <= 2 || daysDiff >= 98; // Within 2 days
+      return daysDiff <= 2 || daysDiff >= 98;
     });
     
     if (matchingSymbolic) {
       return {
         isSymbolic: true,
         symbolicDate: matchingSymbolic.name,
-        reactiveScore: 0.4, // Changed from 0.3 - less punitive
-        explanation: `Event occurred near ${matchingSymbolic.name} - may have symbolic timing`
+        reactiveScore: 0.3,
+        explanation: `Within 2 days of ${matchingSymbolic.name} - likely pre-planned`
       };
     }
     
     return {
       isSymbolic: false,
-      symbolicDate: null,
-      reactiveScore: 0.5, // Neutral - don't reward for NOT being symbolic
-      explanation: 'Event not aligned with known symbolic dates'
+      reactiveScore: 0.5,
+      explanation: 'No symbolic timing detected'
     };
   },
   
@@ -251,34 +358,60 @@ const PreplannedReactive = {
     const peak = Utils.max(values);
     const peakIndex = values.indexOf(peak);
     
-    // Reactive pattern: sharp spike then decay
+    // Reactive pattern: sharp spike then rapid decay
     // Pre-planned pattern: gradual build, sustained plateau, gradual decay
     
     const preEventMean = Utils.mean(values.slice(0, Math.floor(values.length / 2)));
     const postEventMean = Utils.mean(values.slice(Math.floor(values.length / 2)));
     
     const sharpness = peak / preEventMean;
+    
+    // Calculate decay rate (how fast it drops after peak)
+    // This is KEY indicator of reactive vs planned
+    const postPeakValues = values.slice(peakIndex + 1, Math.min(peakIndex + 8, values.length)); // Next 7 days
+    const decayRate = postPeakValues.length > 0 
+      ? (peak - Utils.mean(postPeakValues)) / peak 
+      : 0;
+    
     const sustained = this.isSustained(windowData);
     
     let pattern, reactiveScore, explanation;
     
-    if (sharpness > 2.5 && !sustained) { // Lowered threshold from 3
+    // SHARP SPIKE + RAPID DECAY = VERY REACTIVE (THE STRONGEST SIGNAL!)
+    if (sharpness > 2.5 && decayRate > 0.6 && !sustained) {
+      pattern = 'sharp_spike_rapid_decay';
+      reactiveScore = 0.95; // VERY strong reactive signal
+      explanation = `Sharp spike (${sharpness.toFixed(1)}x) with rapid ${(decayRate*100).toFixed(0)}% decay within 7 days - CLASSIC reactive response pattern`;
+    } 
+    // SHARP SPIKE + MODERATE DECAY = REACTIVE
+    else if (sharpness > 2.5 && decayRate > 0.4 && !sustained) {
+      pattern = 'sharp_spike_moderate_decay';
+      reactiveScore = 0.85;
+      explanation = `Sharp spike (${sharpness.toFixed(1)}x) with ${(decayRate*100).toFixed(0)}% decay - reactive pattern`;
+    }
+    // SHARP SPIKE + SLOW DECAY = AMBIGUOUS
+    else if (sharpness > 2.5 && !sustained) {
       pattern = 'sharp_spike';
-      reactiveScore = 0.85; // Increased from 0.8
-      explanation = 'Sharp spike followed by quick decay - classic reactive pattern';
-    } else if (sustained) {
+      reactiveScore = 0.70;
+      explanation = `Sharp spike (${sharpness.toFixed(1)}x) but slower decay (${(decayRate*100).toFixed(0)}%) - ambiguous pattern`;
+    } 
+    // SUSTAINED ELEVATION = PRE-PLANNED
+    else if (sustained) {
       pattern = 'sustained';
-      reactiveScore = 0.25; // More decisive - decreased from 0.3
-      explanation = 'Sustained elevated ADIZ - suggests planned exercise/operation';
-    } else {
+      reactiveScore = 0.25;
+      explanation = 'Sustained elevated ADIZ activity - suggests planned exercise/operation';
+    } 
+    // GRADUAL = AMBIGUOUS
+    else {
       pattern = 'gradual';
-      reactiveScore = 0.5; // Ambiguous
+      reactiveScore = 0.5;
       explanation = 'Gradual buildup pattern - ambiguous signal';
     }
     
     return {
       pattern,
       sharpness,
+      decayRate,
       sustained,
       reactiveScore,
       explanation
@@ -289,14 +422,37 @@ const PreplannedReactive = {
    * Calculate overall classification from signals
    */
   calculateClassification(signals) {
-    // Weight the signals - temporal is MOST important
-    const weights = {
-      temporal: 0.40,    // Timing is CRITICAL - increased from 30%
-      buildup: 0.30,     // Pre-event trend is key - increased from 25%
-      magnitude: 0.15,   // Size matters but less - decreased from 20%
-      symbolic: 0.10,    // Symbolic dates - decreased from 15%
-      pattern: 0.05      // Pattern shape - decreased from 10%
+    // Start with base weights
+    let weights = {
+      temporal: 0.35,    // Timing is critical
+      buildup: 0.25,     // Pre-event trend matters
+      magnitude: 0.20,   // Size matters
+      symbolic: 0.10,    // Context helps
+      pattern: 0.10      // Shape provides clues
     };
+    
+    // DYNAMIC ADJUSTMENT: If sharp spike + rapid decay detected, 
+    // increase pattern and magnitude weights (these are KEY reactive indicators)
+    if (signals.pattern.pattern === 'sharp_spike_rapid_decay') {
+      weights = {
+        temporal: 0.30,
+        buildup: 0.20,
+        magnitude: 0.25,  // Increased - large spike matters more
+        symbolic: 0.05,   // Decreased - less relevant with clear pattern
+        pattern: 0.20     // DOUBLED - sharp decay is critical indicator
+      };
+    }
+    // If compound magnitude-temporal detected (large spike + close proximity)
+    else if (signals.magnitude.comparison === 'much_larger_immediate' || 
+             signals.magnitude.comparison === 'large_near_immediate') {
+      weights = {
+        temporal: 0.30,
+        buildup: 0.20,
+        magnitude: 0.30,  // INCREASED - compound signal is very strong
+        symbolic: 0.10,
+        pattern: 0.10
+      };
+    }
     
     // Calculate weighted reactive score
     let totalScore = 0;
@@ -330,14 +486,15 @@ const PreplannedReactive = {
       confidence,
       reactiveScore,
       prePlannedScore: 1 - reactiveScore,
-      summary: this.generateSummary(verdict, confidence, reactiveScore, signals)
+      weights,  // Include weights so users can see dynamic adjustment
+      summary: this.generateSummary(verdict, confidence, reactiveScore, signals, weights)
     };
   },
   
   /**
    * Generate human-readable summary
    */
-  generateSummary(verdict, confidence, reactiveScore, signals) {
+  generateSummary(verdict, confidence, reactiveScore, signals, weights = {}) {
     const percentage = (reactiveScore * 100).toFixed(0);
     
     let summary = `Classification: ${verdict.toUpperCase()} (${confidence} confidence)\n\n`;

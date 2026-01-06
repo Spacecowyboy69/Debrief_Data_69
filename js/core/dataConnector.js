@@ -173,6 +173,37 @@ const DataConnector = {
     return data;
   },
   
+  // Get Taiwan Actions filtered by DIME category
+  getTaiwanActions(filters = {}) {
+    if (!this.currentData || !this.currentData.taiwan_actions) return [];
+    
+    let actions = [...this.currentData.taiwan_actions];
+    
+    // Filter by DIME category
+    if (filters.dime_category) {
+      if (Array.isArray(filters.dime_category)) {
+        actions = actions.filter(a => filters.dime_category.includes(a.dime_category));
+      } else {
+        actions = actions.filter(a => a.dime_category === filters.dime_category);
+      }
+    }
+    
+    // Filter by date range
+    if (filters.startDate) {
+      actions = actions.filter(a => a.date >= filters.startDate);
+    }
+    if (filters.endDate) {
+      actions = actions.filter(a => a.date <= filters.endDate);
+    }
+    
+    // Filter by year
+    if (filters.year && filters.year !== 'ALL') {
+      actions = actions.filter(a => a.date.startsWith(filters.year));
+    }
+    
+    return actions;
+  },
+  
   // Check if data is loaded
   isLoaded() {
     return this.currentData !== null;

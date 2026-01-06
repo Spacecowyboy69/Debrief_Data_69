@@ -388,6 +388,7 @@
             <option value="ships">Ship Transits</option>
             <option value="bills">Legislative Bills</option>
             <option value="political">Political/Symbolic</option>
+            <option value="taiwan_actions">Taiwan Actions</option>
           </select>
         </div>
         
@@ -446,6 +447,15 @@
           </div>
         </div>
         
+        <!-- Taiwan Actions Sub-filters A -->
+        <div id="taiwanActionsFiltersA" class="subfilter-section" style="display: none;">
+          <h4>Taiwan Actions Filters</h4>
+          <div class="control-group">
+            <label>DIME Category</label>
+            <select id="taiwan_actions_dimeA"><option value="">All</option></select>
+          </div>
+        </div>
+        
         <div class="event-counter" id="eventCounterA">Select category...</div>
       </div>
       
@@ -462,6 +472,7 @@
             <option value="ships">Ship Transits</option>
             <option value="bills">Legislative Bills</option>
             <option value="political">Political/Symbolic</option>
+            <option value="taiwan_actions">Taiwan Actions</option>
           </select>
         </div>
         
@@ -517,6 +528,15 @@
           <div class="control-group">
             <label>Milestone</label>
             <select id="bills_milestoneB"><option value="">All</option></select>
+          </div>
+        </div>
+        
+        <!-- Taiwan Actions Sub-filters B -->
+        <div id="taiwanActionsFiltersB" class="subfilter-section" style="display: none;">
+          <h4>Taiwan Actions Filters</h4>
+          <div class="control-group">
+            <label>DIME Category</label>
+            <select id="taiwan_actions_dimeB"><option value="">All</option></select>
           </div>
         </div>
         
@@ -726,6 +746,7 @@
       const ships = DataConnector.currentData.ships || [];
       const diplomatic = DataConnector.currentData.diplomatic || [];
       const bills = DataConnector.currentData.bills || [];
+      const taiwanActions = DataConnector.currentData.taiwan_actions || [];
       
       populateDropdown(`arms_valueTier${group}`, getUniqueValues(arms, 'value_tier'));
       populateDropdown(`arms_domain${group}`, getUniqueValues(arms, 'domain'));
@@ -734,6 +755,7 @@
       populateDropdown(`ships_type${group}`, getUniqueValues(ships, 'Ship_Type'));
       populateDropdown(`diplomatic_level${group}`, getUniqueValues(diplomatic, 'US_Official_Level'));
       populateDropdown(`bills_milestone${group}`, getUniqueValues(bills, 'Milestone'));
+      populateDropdown(`taiwan_actions_dime${group}`, getUniqueValues(taiwanActions, 'dime_category'));
     }
     
     function getUniqueValues(dataset, field) {
@@ -758,7 +780,7 @@
       const category = document.getElementById(`category${group}`).value;
       
       // Hide all sub-filters
-      ['arms', 'ships', 'diplomatic', 'bills'].forEach(type => {
+      ['arms', 'ships', 'diplomatic', 'bills', 'taiwanActions'].forEach(type => {
         document.getElementById(`${type}Filters${group}`).style.display = 'none';
       });
       
@@ -771,6 +793,8 @@
         document.getElementById(`diplomaticFilters${group}`).style.display = 'block';
       } else if (category === 'bills') {
         document.getElementById(`billsFilters${group}`).style.display = 'block';
+      } else if (category === 'taiwan_actions') {
+        document.getElementById(`taiwanActionsFilters${group}`).style.display = 'block';
       }
       
       updateEventCounter(group);
@@ -829,6 +853,9 @@
       } else if (category === 'bills') {
         const milestone = document.getElementById(`bills_milestone${group}`).value;
         if (milestone) filters.customFilter = e => e.fields.Milestone === milestone;
+      } else if (category === 'taiwan_actions') {
+        const dimeCategory = document.getElementById(`taiwan_actions_dime${group}`).value;
+        if (dimeCategory) filters.customFilter = e => e.fields.dime_category === dimeCategory;
       }
       
       return filters;

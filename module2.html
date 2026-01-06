@@ -326,6 +326,7 @@
             <option value="ships">Ship Transits</option>
             <option value="bills">Legislative Bills</option>
             <option value="political">Political/Symbolic</option>
+            <option value="taiwan_actions">Taiwan Actions</option>
           </select>
         </div>
         
@@ -411,6 +412,19 @@
             <label>Milestone</label>
             <select id="bills_milestone">
               <option value="">All Milestones</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Taiwan Actions Sub-Filters -->
+      <div id="taiwanActionsFilters" class="subfilter-section" style="display: none;">
+        <h4>🇹🇼 Taiwan Actions Filters</h4>
+        <div class="control-row">
+          <div class="control-group">
+            <label>DIME Category</label>
+            <select id="taiwan_actions_dime">
+              <option value="">All Categories</option>
             </select>
           </div>
         </div>
@@ -628,6 +642,10 @@
       // Bills filters
       const bills = DataConnector.currentData.bills || [];
       populateDropdown('bills_milestone', getUniqueValues(bills, 'Milestone'));
+      
+      // Taiwan Actions filters
+      const taiwanActions = DataConnector.currentData.taiwan_actions || [];
+      populateDropdown('taiwan_actions_dime', getUniqueValues(taiwanActions, 'dime_category'));
     }
     
     function getUniqueValues(dataset, field) {
@@ -663,6 +681,8 @@
         document.getElementById('diplomaticFilters').style.display = 'block';
       } else if (category === 'bills') {
         document.getElementById('billsFilters').style.display = 'block';
+      } else if (category === 'taiwan_actions') {
+        document.getElementById('taiwanActionsFilters').style.display = 'block';
       }
       
       updateFilterInfo();
@@ -736,6 +756,9 @@
       } else if (category === 'bills') {
         const milestone = document.getElementById('bills_milestone').value;
         if (milestone) filters.customFilter = e => e.fields.Milestone === milestone;
+      } else if (category === 'taiwan_actions') {
+        const dimeCategory = document.getElementById('taiwan_actions_dime').value;
+        if (dimeCategory) filters.customFilter = e => e.fields.dime_category === dimeCategory;
       }
       
       return filters;

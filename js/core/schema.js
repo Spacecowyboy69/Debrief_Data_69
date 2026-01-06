@@ -37,6 +37,11 @@ const DataSchema = {
       date_field: 'date',
       category: 'political',
       required: ['date', 'event_name']
+    },
+    taiwan_actions: {
+      date_field: 'date',
+      category: 'taiwan_actions',
+      required: ['date', 'event_name', 'dime_category']
     }
   },
   
@@ -66,6 +71,8 @@ const DataSchema = {
         return `${event.Country} - ${event.Ship_Type}`;
       case 'political_symbolic':
         return event.short_label || event.event_name;
+      case 'taiwan_actions':
+        return `🇹🇼 ${event.dime_category}: ${event.event_name?.substring(0, 40) || event.event_name}`;
       default:
         return 'Unknown Event';
     }
@@ -83,6 +90,8 @@ const DataSchema = {
         return event.Label || `${event.Country} ${event.Ship_Type}`;
       case 'political_symbolic':
         return event.description || event.event_name || '';
+      case 'taiwan_actions':
+        return `${event.event_name} (${event.dime_category})`;
       default:
         return '';
     }

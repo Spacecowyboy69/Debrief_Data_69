@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Module 9: Actions Roundup - ADIZ Dashboard</title>
+  <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1e3a8a 0%, #312e81 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .header {
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 25px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    
+    .header h1 {
+      color: #1e3a8a;
+      margin-bottom: 8px;
+      font-size: 2rem;
+    }
+    
+    .header p {
+      color: #666;
+      margin-bottom: 15px;
+      line-height: 1.6;
+    }
+    
+    .methodology {
+      background: #f0f9ff;
+      border-left: 4px solid #1e3a8a;
+      padding: 15px;
+      margin-top: 15px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+    
+    .methodology strong {
+      color: #1e3a8a;
+    }
+    
+    .nav {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+    
+    .nav a {
+      text-decoration: none;
+      color: #1e3a8a;
+      font-weight: 500;
+      padding: 8px 16px;
+      border-radius: 8px;
+      background: #f0f9ff;
+      transition: all 0.2s;
+    }
+    
+    .nav a:hover {
+      background: #dbeafe;
+      transform: translateY(-2px);
+    }
+    
+    .controls {
+      background: white;
+      border-radius: 16px;
+      padding: 25px;
+      margin-bottom: 25px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    
+    .control-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .control-group label {
+      font-weight: 600;
+      color: #374151;
+      font-size: 0.9rem;
+    }
+    
+    .control-group input,
+    .control-group select {
+      padding: 10px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      transition: all 0.2s;
+    }
+    
+    .control-group input:focus,
+    .control-group select:focus {
+      outline: none;
+      border-color: #1e3a8a;
+      box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1);
+    }
+    
+    button {
+      padding: 12px 32px;
+      background: linear-gradient(135deg, #1e3a8a 0%, #312e81 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(30, 58, 138, 0.3);
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(30, 58, 138, 0.4);
+    }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 60px 20px;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      color: #1e3a8a;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+    
+    .loading.active {
+      display: block;
+    }
+    
+    .loading::before {
+      content: '🔍';
+      display: block;
+      font-size: 3rem;
+      margin-bottom: 15px;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.1); }
+    }
+    
+    .results {
+      display: none;
+    }
+    
+    .results.active {
+      display: block;
+    }
+    
+    .section {
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 25px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    
+    .section h2 {
+      color: #1e3a8a;
+      margin-bottom: 20px;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .spike-card {
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      transition: all 0.3s;
+    }
+    
+    .spike-card:hover {
+      border-color: #1e3a8a;
+      box-shadow: 0 8px 24px rgba(30, 58, 138, 0.15);
+      transform: translateY(-2px);
+    }
+    
+    .spike-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    
+    .spike-date {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #1e3a8a;
+    }
+    
+    .spike-count {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #dc2626;
+      color: white;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+    
+    .spike-count.high {
+      background: #dc2626;
+    }
+    
+    .spike-count.medium {
+      background: #f59e0b;
+    }
+    
+    .spike-count.low {
+      background: #10b981;
+    }
+    
+    .triggers {
+      margin-top: 15px;
+    }
+    
+    .trigger-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px;
+      background: white;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      border-left: 4px solid #1e3a8a;
+    }
+    
+    .trigger-icon {
+      font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+    
+    .trigger-content {
+      flex: 1;
+    }
+    
+    .trigger-category {
+      font-weight: 600;
+      color: #1e3a8a;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    
+    .trigger-event {
+      color: #374151;
+      font-size: 1rem;
+      line-height: 1.4;
+      margin-bottom: 4px;
+    }
+    
+    .trigger-timing {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      color: #6b7280;
+      margin-top: 6px;
+    }
+    
+    .trigger-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+    
+    .trigger-badge.immediate {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    
+    .trigger-badge.recent {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    
+    .trigger-badge.delayed {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+    
+    .no-triggers {
+      background: #fef2f2;
+      border: 2px dashed #fca5a5;
+      border-radius: 8px;
+      padding: 15px;
+      text-align: center;
+      color: #991b1b;
+      font-weight: 600;
+      margin-top: 15px;
+    }
+    
+    .confidence-score {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      color: #6b7280;
+      margin-top: 10px;
+    }
+    
+    .confidence-bar {
+      width: 100px;
+      height: 6px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    
+    .confidence-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+      transition: width 0.3s;
+    }
+    
+    .unexplained-section {
+      background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+      border: 2px solid #fca5a5;
+    }
+    
+    .unexplained-section h2 {
+      color: #991b1b;
+    }
+    
+    .mystery-badge {
+      display: inline-block;
+      background: #991b1b;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 16px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-left: 10px;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    
+    .stat-card {
+      background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+    
+    .stat-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #1e3a8a;
+      margin-bottom: 5px;
+    }
+    
+    .stat-label {
+      font-size: 0.9rem;
+      color: #1e40af;
+      font-weight: 600;
+    }
+    
+    .chart-container {
+      margin-top: 30px;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🎯 Module 9: Actions Roundup</h1>
+    <p>Intelligent analysis of top ADIZ spike days using causal reasoning and historical pattern matching to distinguish genuine triggers from responses and structural events.</p>
+    
+    <div class="methodology">
+      <div style="margin-bottom: 15px;">
+        <strong>🧠 Causal Logic:</strong> This module filters out <strong>military exercises</strong> (responses, not triggers) and downgrades <strong>pre-planned events</strong> (holidays, NPC sessions, scheduled speeches) since they're structural/calendrical. It boosts confidence for proven historical patterns like Pelosi → exercises or major arms sales → spike responses.
+      </div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; font-size: 0.85rem;">
+        <div style="background: #dcfce7; padding: 10px; border-radius: 6px;">
+          <strong style="color: #047857;">✅ Valid Triggers:</strong> Arms sales (95%), diplomatic visits (95%), Taiwan actions (75%), ship transits (70%), bills (50%)
+        </div>
+        <div style="background: #fee2e2; padding: 10px; border-radius: 6px;">
+          <strong style="color: #991b1b;">🚫 Filtered:</strong> Military exercises (responses), pre-planned holidays/NPC (-70% confidence)
+        </div>
+      </div>
+      
+      <div style="background: #dbeafe; padding: 10px; border-radius: 6px; font-size: 0.85rem;">
+        <strong style="color: #1e40af;">📚 Historical Patterns:</strong> Pelosi (Aug '22) → 100%, McCarthy (Apr '23) → 100%, Lai inauguration → 95%, Trump $11B sale → 90%
+      </div>
+    </div>
+    
+    <div class="nav">
+      <a href="index.html">🏠 Home</a>
+      <a href="visualizer.html">📊 Module 1: Visualizer</a>
+      <a href="module2.html">📈 Module 2: Category Analyzer</a>
+      <a href="module3.html">🔄 Module 3: A/B Compare</a>
+      <a href="module8.html">🤖 Module 8: Event Classifier</a>
+    </div>
+  </div>
+  
+  <div class="controls">
+    <div class="control-row">
+      <div class="control-group">
+        <label>Top N Spike Days</label>
+        <input type="number" id="topN" value="20" min="5" max="50">
+      </div>
+      
+      <div class="control-group">
+        <label>Detection Window</label>
+        <select id="windowSize">
+          <option value="7">±7 days</option>
+          <option value="14" selected>±14 days</option>
+          <option value="21">±21 days</option>
+        </select>
+      </div>
+      
+      <div class="control-group">
+        <label>Minimum Spike Threshold</label>
+        <input type="number" id="minThreshold" value="15" min="10" max="50">
+      </div>
+      
+      <div class="control-group">
+        <label>Date Range</label>
+        <select id="dateRange">
+          <option value="all">All Time</option>
+          <option value="2024">2024 Only</option>
+          <option value="2023">2023 Only</option>
+          <option value="2022">2022 Only</option>
+          <option value="recent">Last 12 Months</option>
+        </select>
+      </div>
+    </div>
+    
+    <button onclick="runAnalysis()">🔍 Analyze Top Spikes</button>
+  </div>
+  
+  <div class="loading" id="loading">
+    Analyzing ADIZ spikes and cross-referencing with all event categories...
+  </div>
+  
+  <div class="results" id="results">
+    <!-- Summary Stats -->
+    <div class="section">
+      <h2>📊 Summary Statistics</h2>
+      <div class="stats-grid" id="statsGrid"></div>
+    </div>
+    
+    <!-- Explained Spikes -->
+    <div class="section">
+      <h2>✅ Top ADIZ Spikes with Likely Triggers</h2>
+      <div id="explainedSpikes"></div>
+    </div>
+    
+    <!-- Unexplained Spikes -->
+    <div class="section unexplained-section">
+      <h2>❓ Top Unexplained Reactions <span class="mystery-badge">INTELLIGENCE GAPS</span></h2>
+      <p style="margin-bottom: 20px; color: #991b1b;">
+        These significant ADIZ spikes (15+ aircraft) occurred with no clear precursor events in our data. 
+        These may represent: (1) internal PLA scheduling, (2) classified/unreported events, (3) reactive responses to events outside our data coverage, or (4) preemptive shows of force.
+      </p>
+      <div id="unexplainedSpikes"></div>
+    </div>
+  </div>
+  
+  <script>
+    // ============================================================================
+    // DATA CONNECTOR - Load from visualizer.html
+    // ============================================================================
+    const DataConnector = {
+      currentData: null,
+      
+      async loadData() {
+        try {
+          const response = await fetch('visualizer.html');
+          const htmlContent = await response.text();
+          const dataMatch = htmlContent.match(/const DATA\s*=\s*(\{[\s\S]*?\});/);
+          const DATA = new Function('return ' + dataMatch[1])();
+          
+          this.currentData = {
+            adiz_baseline: DATA.adiz_baseline || [],
+            arms_sales: DATA.arms_sales || [],
+            diplomatic: DATA.diplomatic || [],
+            ships: DATA.ships || [],
+            bills: DATA.bills || [],
+            political_symbolic: DATA.political_symbolic || [],
+            taiwan_actions: DATA.taiwan_actions || []
+          };
+          
+          console.log('✅ Data loaded successfully');
+          console.log('ADIZ baseline:', this.currentData.adiz_baseline.length, 'days');
+          console.log('Arms sales:', this.currentData.arms_sales.length);
+          console.log('Diplomatic:', this.currentData.diplomatic.length);
+          console.log('Ships:', this.currentData.ships.length);
+          console.log('Bills:', this.currentData.bills.length);
+          console.log('Political:', this.currentData.political_symbolic.length);
+          console.log('Taiwan actions:', this.currentData.taiwan_actions.length);
+          
+          return this.currentData;
+        } catch (error) {
+          console.error('❌ Failed to load data:', error);
+          throw error;
+        }
+      }
+    };
+    
+    // ============================================================================
+    // CAUSAL LOGIC ENGINE - Understands trigger vs response dynamics
+    // ============================================================================
+    const CausalLogic = {
+      
+      // Known exercise patterns (these are RESPONSES, not triggers)
+      exercisePatterns: [
+        /joint sword/i,
+        /strait thunder/i,
+        /justice mission/i,
+        /pelosi snap/i,
+        /military exercise/i,
+        /han kuang/i,
+        /drill/i,
+        /exercise/i
+      ],
+      
+      // Pre-planned events that can't be triggered (structural/calendrical)
+      preplannedPatterns: {
+        // Political calendars
+        structural: [
+          /national people's congress/i,
+          /chinese people's political consultative/i,
+          /national congress/i,
+          /election cycle/i,
+          /inauguration/i
+        ],
+        // Cultural/symbolic holidays (always same date)
+        calendrical: [
+          /lunar new year/i,
+          /national day/i,
+          /founding day/i,
+          /victory day/i,
+          /national humiliation/i,
+          /ccp.*anniversary/i
+        ],
+        // Ceremonial events (scheduled long in advance)
+        ceremonial: [
+          /double ten.*speech/i,
+          /ten day speech/i,
+          /national day.*speech/i
+        ]
+      },
+      
+      // High-inflammatory trigger events (most likely to provoke responses)
+      knownTriggerTypes: {
+        veryHigh: ['arms_sales', 'diplomatic'],  // 95% likely to trigger
+        high: ['taiwan_actions', 'ships'],        // 75% likely to trigger
+        medium: ['bills', 'political_symbolic']   // 50% likely to trigger
+      },
+      
+      // Historical proven trigger-response pairs
+      historicalPairs: [
+        { trigger: 'pelosi', response: 'joint sword', date: '2022-08', confidence: 100 },
+        { trigger: 'mccarthy', response: 'joint sword', date: '2023-04', confidence: 100 },
+        { trigger: 'lai.*inauguration', response: 'joint sword.*2024a', date: '2024-05', confidence: 95 },
+        { trigger: 'lai.*double ten', response: 'joint sword.*2024b', date: '2024-10', confidence: 95 },
+        { trigger: 'trump.*11.*billion', response: 'justice mission', date: '2025-12', confidence: 90 }
+      ],
+      
+      isExercise(eventText) {
+        return this.exercisePatterns.some(pattern => pattern.test(eventText));
+      },
+      
+      isPreplanned(eventText) {
+        return Object.values(this.preplannedPatterns).some(patterns =>
+          patterns.some(pattern => pattern.test(eventText))
+        );
+      },
+      
+      getPreplannedType(eventText) {
+        for (const [type, patterns] of Object.entries(this.preplannedPatterns)) {
+          if (patterns.some(pattern => pattern.test(eventText))) {
+            return type;
+          }
+        }
+        return null;
+      },
+      
+      // Check if event matches historical trigger patterns
+      matchesHistoricalTrigger(event, spike) {
+        const eventText = (event.event || event.event_name || event.weapon_sale || 
+                          event.Event_Title || event.Descriptor || '').toLowerCase();
+        const spikeDate = new Date(spike.date);
+        
+        for (const pair of this.historicalPairs) {
+          const triggerMatch = new RegExp(pair.trigger, 'i').test(eventText);
+          if (triggerMatch) {
+            // Check if timing is within expected response window (0-14 days after trigger)
+            const eventDate = new Date(event.date || event.Date);
+            const daysDiff = (spikeDate - eventDate) / (24 * 60 * 60 * 1000);
+            if (daysDiff >= 0 && daysDiff <= 14) {
+              return { matched: true, confidence: pair.confidence, historical: pair };
+            }
+          }
+        }
+        return { matched: false };
+      }
+    };
+    
+    // ============================================================================
+    // INFLAMMATION RANKER - A/B comparison engine for event severity
+    // ============================================================================
+    const InflammationRanker = {
+      cache: null,
+      
+      // Run simulated A/B comparisons to rank event categories by inflammatory potential
+      async rankCategories() {
+        if (this.cache) return this.cache;
+        
+        console.log('🔬 Running inflammation ranking simulations...');
+        
+        const categories = [
+          { key: 'arms_sales', name: 'Arms Sales', weight: 1.0, triggerLikelihood: 95 },
+          { key: 'diplomatic', name: 'Diplomatic Meetings', weight: 0.95, triggerLikelihood: 95 },
+          { key: 'taiwan_actions', name: 'Taiwan Actions', weight: 0.75, triggerLikelihood: 75 },
+          { key: 'ships', name: 'Ship Transits', weight: 0.70, triggerLikelihood: 70 },
+          { key: 'political_symbolic', name: 'Political Events', weight: 0.40, triggerLikelihood: 40 },
+          { key: 'bills', name: 'Legislative Bills', weight: 0.50, triggerLikelihood: 50 }
+        ];
+        
+        // Calculate average ADIZ increase for each category
+        const rankings = [];
+        
+        for (const cat of categories) {
+          const events = DataConnector.currentData[cat.key] || [];
+          if (events.length === 0) continue;
+          
+          let totalImpact = 0;
+          let validEvents = 0;
+          
+          events.forEach(event => {
+            const eventDate = new Date(event.date || event.Date);
+            const impact = this.calculateEventImpact(eventDate);
+            if (impact > 0) {
+              totalImpact += impact;
+              validEvents++;
+            }
+          });
+          
+          const avgImpact = validEvents > 0 ? totalImpact / validEvents : 0;
+          
+          rankings.push({
+            category: cat.name,
+            key: cat.key,
+            avgImpact: avgImpact,
+            weight: cat.weight,
+            triggerLikelihood: cat.triggerLikelihood,
+            score: avgImpact * cat.weight,
+            eventCount: events.length
+          });
+        }
+        
+        rankings.sort((a, b) => b.score - a.score);
+        
+        this.cache = rankings;
+        console.log('✅ Inflammation rankings complete:', rankings);
+        return rankings;
+      },
+      
+      calculateEventImpact(eventDate) {
+        const baseline = DataConnector.currentData.adiz_baseline;
+        const eventTime = eventDate.getTime();
+        
+        // Get baseline before event (7 days)
+        const baselineDays = baseline.filter(d => {
+          const dt = new Date(d.Date).getTime();
+          const diff = (eventTime - dt) / (24 * 60 * 60 * 1000);
+          return diff >= 7 && diff <= 14;
+        });
+        
+        // Get spike after event (7 days)
+        const spikeDays = baseline.filter(d => {
+          const dt = new Date(d.Date).getTime();
+          const diff = (dt - eventTime) / (24 * 60 * 60 * 1000);
+          return diff >= 0 && diff <= 7;
+        });
+        
+        if (baselineDays.length === 0 || spikeDays.length === 0) return 0;
+        
+        const avgBaseline = baselineDays.reduce((sum, d) => sum + parseInt(d.ADIZ_count), 0) / baselineDays.length;
+        const avgSpike = spikeDays.reduce((sum, d) => sum + parseInt(d.ADIZ_count), 0) / spikeDays.length;
+        
+        return Math.max(0, avgSpike - avgBaseline);
+      }
+    };
+    
+    // ============================================================================
+    // SPIKE ANALYZER - Find and analyze top spike days
+    // ============================================================================
+    const SpikeAnalyzer = {
+      
+      getTopSpikes(options = {}) {
+        const { topN = 20, minThreshold = 15, dateRange = 'all' } = options;
+        const baseline = DataConnector.currentData.adiz_baseline;
+        
+        console.log('🔍 Analyzing', baseline.length, 'days of ADIZ data...');
+        
+        // Filter by date range
+        let filtered = baseline;
+        if (dateRange !== 'all') {
+          const now = new Date('2026-01-06'); // Use current date from system
+          filtered = baseline.filter(d => {
+            const date = new Date(d.Date);
+            if (dateRange === 'recent') {
+              const twelveMonthsAgo = new Date(now);
+              twelveMonthsAgo.setMonth(now.getMonth() - 12);
+              return date >= twelveMonthsAgo;
+            } else {
+              return date.getFullYear().toString() === dateRange;
+            }
+          });
+        }
+        
+        console.log('📊 After date filter:', filtered.length, 'days');
+        console.log('🎯 Minimum threshold:', minThreshold, 'aircraft');
+        
+        // Filter by threshold and sort (convert string to number!)
+        const spikes = filtered
+          .map(d => ({
+            date: d.Date,
+            aircraft: parseInt(d.ADIZ_count)
+          }))
+          .filter(d => d.aircraft >= minThreshold)
+          .sort((a, b) => b.aircraft - a.aircraft)
+          .slice(0, topN);
+        
+        console.log('✅ Found', spikes.length, 'spikes above threshold');
+        
+        return spikes;
+      },
+      
+      async findTriggersForSpike(spikeDate, windowDays = 14) {
+        const triggers = [];
+        const spikeTime = new Date(spikeDate).getTime();
+        const windowMs = windowDays * 24 * 60 * 60 * 1000;
+        
+        // Get inflammation rankings for prioritization
+        const rankings = await InflammationRanker.rankCategories();
+        
+        const categories = [
+          { name: 'arms_sales', label: 'Arms Sales', icon: '💰', field: 'date' },
+          { name: 'diplomatic', label: 'Diplomatic', icon: '🤝', field: 'date' },
+          { name: 'ships', label: 'Ship Transit', icon: '🚢', field: 'date' },
+          { name: 'bills', label: 'Legislative Bill', icon: '📜', field: 'date' },
+          { name: 'political_symbolic', label: 'Political Event', icon: '🗓️', field: 'date' },
+          { name: 'taiwan_actions', label: 'Taiwan Action', icon: '🇹🇼', field: 'date' }
+        ];
+        
+        categories.forEach(cat => {
+          const events = DataConnector.currentData[cat.name] || [];
+          events.forEach(event => {
+            const eventDate = event[cat.field] || event.date || event.Date;
+            if (!eventDate) return;
+            
+            const eventTime = new Date(eventDate).getTime();
+            const daysDiff = (spikeTime - eventTime) / (24 * 60 * 60 * 1000);
+            
+            // Only consider events before spike, within window (0-14 days before)
+            if (daysDiff >= 0 && daysDiff <= windowDays) {
+              const eventText = this.getEventDescription(event, cat.name);
+              
+              // CRITICAL: Filter out exercises - they're RESPONSES not triggers
+              if (CausalLogic.isExercise(eventText)) {
+                console.log('🚫 Filtered exercise (response, not trigger):', eventText);
+                return; // Skip exercises
+              }
+              
+              // Check if pre-planned (structural/calendrical)
+              const preplannedType = CausalLogic.getPreplannedType(eventText);
+              
+              const timing = daysDiff === 0 ? 'immediate' : 
+                           daysDiff <= 4 ? 'recent' : 'delayed';
+              
+              // Base confidence on temporal proximity (exponential decay)
+              let confidence = 100 * Math.exp(-daysDiff / 5); // 5-day half-life
+              
+              // Check for historical pattern matches (e.g., Pelosi → Joint Sword)
+              const historicalMatch = CausalLogic.matchesHistoricalTrigger(event, { date: spikeDate });
+              if (historicalMatch.matched) {
+                confidence = historicalMatch.confidence; // Use historical confidence
+                console.log('✨ Historical pattern match:', eventText, '→', confidence + '%');
+              }
+              
+              // Boost based on inflammation ranking
+              const ranking = rankings.find(r => r.key === cat.name);
+              if (ranking) {
+                confidence = confidence * (0.6 + 0.4 * ranking.weight);
+              }
+              
+              // DOWNGRADE pre-planned events (they're not reactive)
+              if (preplannedType) {
+                confidence *= 0.3; // 70% penalty for structural/calendrical events
+                console.log('📅 Pre-planned event (downgraded):', eventText, '->', Math.round(confidence) + '%');
+              }
+              
+              // Boost for same-day events
+              if (daysDiff === 0) confidence *= 1.3;
+              
+              // Boost for events within 0-4 day critical window
+              if (daysDiff <= 4) confidence *= 1.15;
+              
+              confidence = Math.min(95, Math.max(15, confidence));
+              
+              triggers.push({
+                category: cat.label,
+                icon: cat.icon,
+                event: eventText,
+                date: eventDate,
+                daysBefore: Math.round(daysDiff),
+                timing: timing,
+                confidence: confidence,
+                rawEvent: event,
+                categoryKey: cat.name,
+                preplanned: preplannedType || false,
+                historical: historicalMatch.matched || false
+              });
+            }
+          });
+        });
+        
+        // Filter out low-confidence triggers (below 25%)
+        const filteredTriggers = triggers.filter(t => t.confidence >= 25);
+        
+        // Sort by timing first, then confidence
+        filteredTriggers.sort((a, b) => {
+          if (a.daysBefore !== b.daysBefore) return a.daysBefore - b.daysBefore;
+          return b.confidence - a.confidence;
+        });
+        
+        console.log('🎯 Found', filteredTriggers.length, 'valid triggers (exercises filtered)');
+        
+        return filteredTriggers;
+      },
+      
+      getEventDescription(event, category) {
+        switch(category) {
+          case 'arms_sales':
+            const value = event.value_millions ? `$${Math.round(event.value_millions)}M` : 
+                         event.value_display || '';
+            const weapon = event.weapon_sale || event.item_description || 'Arms package';
+            return `${weapon} ${value}`.trim();
+            
+          case 'diplomatic':
+            const official = event.US_Official_Level || 'Official';
+            const title = event.Descriptor || event.Event_Title || '';
+            const location = event.Meeting_Location ? `in ${event.Meeting_Location}` : '';
+            // Use full descriptor if available, otherwise construct
+            if (event.Descriptor) {
+              return event.Descriptor;
+            }
+            return `${official} ${title} ${location}`.trim();
+            
+          case 'ships':
+            const country = event.Country || 'Naval';
+            const shipType = event.Ship_Type || 'vessel';
+            const shipName = event.Label ? event.Label.split('–')[1]?.split('(')[0]?.trim() : '';
+            if (shipName) {
+              return `${country} ${shipName} (${shipType}) transited Taiwan Strait`;
+            }
+            return `${country} ${shipType} transited Taiwan Strait`;
+            
+          case 'bills':
+            const billId = event.Bill_ID || '';
+            const milestone = event.Milestone || 'Legislative action';
+            const shortTitle = event.Short_Title || event.Bill_Title || '';
+            if (shortTitle) {
+              return `${billId} "${shortTitle}" - ${milestone}`;
+            }
+            return `${billId} - ${milestone}`;
+            
+          case 'political_symbolic':
+            const actor = event.actor ? `(${event.actor})` : '';
+            const eventType = event.event_type || 'Political event';
+            const eventName = event.event_name || event.short_label || event.Descriptor || '';
+            const description = event.description || '';
+            // Prefer description if it exists and is detailed
+            if (description && description.length > eventName.length) {
+              return description;
+            }
+            if (eventName) {
+              return `${eventType}: ${eventName} ${actor}`.trim();
+            }
+            return `${eventType} ${actor}`.trim();
+            
+          case 'taiwan_actions':
+            const twEventName = event.event_name || event.description || '';
+            const dimeCategory = event.dime_category ? `[${event.dime_category}]` : '';
+            const twDescription = event.description || '';
+            // Use the full event name if available
+            if (twEventName) {
+              return `${dimeCategory} ${twEventName}`.trim();
+            }
+            return `${dimeCategory} Taiwan action`.trim();
+            
+          default:
+            return JSON.stringify(event).substring(0, 100);
+        }
+      }
+    };
+    
+    // ============================================================================
+    // UI RENDERER
+    // ============================================================================
+    const UIRenderer = {
+      
+      async renderResults(analysis) {
+        await this.renderStats(analysis.stats);
+        this.renderExplainedSpikes(analysis.explained);
+        this.renderUnexplainedSpikes(analysis.unexplained);
+      },
+      
+      async renderStats(stats) {
+        const grid = document.getElementById('statsGrid');
+        
+        // Get inflammation rankings
+        const rankings = await InflammationRanker.rankCategories();
+        const topInflammatory = rankings.length > 0 ? rankings[0].category : 'Unknown';
+        
+        grid.innerHTML = `
+          <div class="stat-card">
+            <div class="stat-value">${stats.totalSpikes}</div>
+            <div class="stat-label">Total Spike Days</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${stats.explained}</div>
+            <div class="stat-label">With Clear Triggers</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${stats.unexplained}</div>
+            <div class="stat-label">Intelligence Gaps</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${stats.avgTriggers.toFixed(1)}</div>
+            <div class="stat-label">Avg Triggers/Spike</div>
+          </div>
+        `;
+        
+        // Add inflammation ranking info
+        if (rankings.length > 0) {
+          grid.innerHTML += `
+            <div class="stat-card" style="grid-column: span 2; background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);">
+              <div style="font-size: 1rem; color: #991b1b; font-weight: 600; margin-bottom: 8px;">Most Inflammatory Event Type</div>
+              <div style="font-size: 1.3rem; font-weight: 700; color: #7f1d1d;">${topInflammatory}</div>
+              <div style="font-size: 0.85rem; color: #991b1b; margin-top: 4px;">
+                Avg Impact: +${rankings[0].avgImpact.toFixed(1)} aircraft
+              </div>
+            </div>
+          `;
+        }
+      },
+      
+      renderExplainedSpikes(spikes) {
+        const container = document.getElementById('explainedSpikes');
+        
+        if (spikes.length === 0) {
+          container.innerHTML = '<p style="color: #6b7280;">No explained spikes found. Try adjusting the threshold or date range.</p>';
+          return;
+        }
+        
+        container.innerHTML = spikes.map(spike => {
+          const countClass = spike.aircraft >= 30 ? 'high' : spike.aircraft >= 20 ? 'medium' : 'low';
+          
+          // Group triggers by critical timing (0-4 days)
+          const criticalTriggers = spike.triggers.filter(t => t.daysBefore <= 4);
+          const otherTriggers = spike.triggers.filter(t => t.daysBefore > 4);
+          
+          const renderTriggers = (triggers) => triggers.map(t => {
+            // Historical match badge
+            const historicalBadge = t.historical ? 
+              '<span style="background: #10b981; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; margin-left: 6px;">📚 HISTORICAL PATTERN</span>' 
+              : '';
+            
+            // Pre-planned badge
+            const preplannedBadge = t.preplanned ? 
+              '<span style="background: #6b7280; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; margin-left: 6px;">📅 PRE-PLANNED</span>' 
+              : '';
+            
+            // Generate unique ID for each trigger
+            const triggerId = `trigger-${Math.random().toString(36).substr(2, 9)}`;
+            
+            // Build detailed metadata
+            let metadata = [];
+            const raw = t.rawEvent;
+            
+            // Category-specific metadata
+            if (t.categoryKey === 'arms_sales') {
+              if (raw.offensive_defensive) metadata.push(`Type: ${raw.offensive_defensive}`);
+              if (raw.value_tier) metadata.push(`Value Tier: ${raw.value_tier}`);
+              if (raw.domain) metadata.push(`Domain: ${raw.domain}`);
+              if (raw.capability_function) metadata.push(`Capability: ${raw.capability_function}`);
+            } else if (t.categoryKey === 'diplomatic') {
+              if (raw.US_Official_Level) metadata.push(`Official Level: ${raw.US_Official_Level}`);
+              if (raw.Meeting_Location) metadata.push(`Location: ${raw.Meeting_Location}`);
+              if (raw.Meeting_Status) metadata.push(`Status: ${raw.Meeting_Status}`);
+              if (raw.TW_Level) metadata.push(`Taiwan Level: ${raw.TW_Level}`);
+            } else if (t.categoryKey === 'ships') {
+              if (raw.Country) metadata.push(`Country: ${raw.Country}`);
+              if (raw.Ship_Type) metadata.push(`Type: ${raw.Ship_Type}`);
+            } else if (t.categoryKey === 'bills') {
+              if (raw.Bill_ID) metadata.push(`Bill ID: ${raw.Bill_ID}`);
+              if (raw.Milestone) metadata.push(`Milestone: ${raw.Milestone}`);
+            } else if (t.categoryKey === 'political_symbolic') {
+              if (raw.event_type) metadata.push(`Type: ${raw.event_type}`);
+              if (raw.actor) metadata.push(`Actor: ${raw.actor}`);
+              if (raw.importance) metadata.push(`Importance: ${raw.importance}`);
+            } else if (t.categoryKey === 'taiwan_actions') {
+              if (raw.dime_category) metadata.push(`DIME: ${raw.dime_category}`);
+            }
+            
+            const metadataHtml = metadata.length > 0 ? `
+              <div id="${triggerId}" style="display: none; margin-top: 8px; padding: 10px; background: #f3f4f6; border-radius: 6px; font-size: 0.8rem;">
+                <strong>Additional Details:</strong>
+                <ul style="margin: 5px 0; padding-left: 20px;">
+                  ${metadata.map(m => `<li>${m}</li>`).join('')}
+                </ul>
+              </div>
+            ` : '';
+            
+            const expandButton = metadata.length > 0 ? `
+              <button onclick="document.getElementById('${triggerId}').style.display = document.getElementById('${triggerId}').style.display === 'none' ? 'block' : 'none'; this.textContent = document.getElementById('${triggerId}').style.display === 'none' ? '▼ Show Details' : '▲ Hide Details';" 
+                      style="background: #3b82f6; color: white; border: none; padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; margin-top: 6px;">
+                ▼ Show Details
+              </button>
+            ` : '';
+            
+            return `
+            <div class="trigger-item">
+              <div class="trigger-icon">${t.icon}</div>
+              <div class="trigger-content">
+                <div class="trigger-category">
+                  ${t.category}
+                  ${historicalBadge}
+                  ${preplannedBadge}
+                </div>
+                <div class="trigger-event">${t.event}</div>
+                <div class="trigger-timing">
+                  📅 ${t.date}
+                  <span class="trigger-badge ${t.timing}">
+                    ${t.daysBefore === 0 ? '⚡ Same Day' : `T-${t.daysBefore} day${t.daysBefore > 1 ? 's' : ''}`}
+                  </span>
+                </div>
+                <div class="confidence-score">
+                  Confidence: 
+                  <div class="confidence-bar">
+                    <div class="confidence-fill" style="width: ${t.confidence}%"></div>
+                  </div>
+                  ${t.confidence.toFixed(0)}%
+                  ${t.preplanned ? '<span style="color: #6b7280; font-size: 0.75rem; margin-left: 8px;">(Downgraded: Structural/Calendrical)</span>' : ''}
+                </div>
+                ${expandButton}
+                ${metadataHtml}
+              </div>
+            </div>
+          `}).join('');
+          
+          const criticalHtml = criticalTriggers.length > 0 ? `
+            <div style="margin-bottom: 15px;">
+              <h4 style="color: #dc2626; font-size: 0.9rem; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                <span style="background: #dc2626; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem;">CRITICAL WINDOW</span>
+                Events 0-4 days before spike
+              </h4>
+              ${renderTriggers(criticalTriggers)}
+            </div>
+          ` : '';
+          
+          const otherHtml = otherTriggers.length > 0 ? `
+            <div>
+              <h4 style="color: #6b7280; font-size: 0.85rem; margin-bottom: 10px;">Secondary Events (5-14 days before)</h4>
+              ${renderTriggers(otherTriggers)}
+            </div>
+          ` : '';
+          
+          const noTriggersHtml = spike.triggers.length === 0 ? `
+            <div class="no-triggers">
+              ❓ No triggers found within detection window
+            </div>
+          ` : '';
+          
+          return `
+            <div class="spike-card">
+              <div class="spike-header">
+                <div class="spike-date">📍 ${spike.date}</div>
+                <div class="spike-count ${countClass}">
+                  ✈️ ${spike.aircraft} aircraft
+                </div>
+              </div>
+              <div class="triggers">
+                ${criticalHtml}
+                ${otherHtml}
+                ${noTriggersHtml}
+              </div>
+            </div>
+          `;
+        }).join('');
+      },
+      
+      renderUnexplainedSpikes(spikes) {
+        const container = document.getElementById('unexplainedSpikes');
+        
+        if (spikes.length === 0) {
+          container.innerHTML = '<p style="color: #059669; font-weight: 600;">✅ All significant spikes have identifiable triggers in our data!</p>';
+          return;
+        }
+        
+        container.innerHTML = spikes.map(spike => {
+          const countClass = spike.aircraft >= 30 ? 'high' : spike.aircraft >= 20 ? 'medium' : 'low';
+          
+          return `
+            <div class="spike-card">
+              <div class="spike-header">
+                <div class="spike-date">📍 ${spike.date}</div>
+                <div class="spike-count ${countClass}">
+                  ✈️ ${spike.aircraft} aircraft
+                </div>
+              </div>
+              <div class="no-triggers">
+                ❓ No clear triggers found within ±14 days (confidence threshold: 25%)
+                <br>
+                <small style="display: block; margin-top: 8px; color: #7f1d1d;">
+                  Possible causes: Internal PLA scheduling, classified events, or preemptive shows of force
+                </small>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    };
+    
+    // ============================================================================
+    // MAIN ANALYSIS FUNCTION
+    // ============================================================================
+    window.runAnalysis = async function() {
+      const topN = parseInt(document.getElementById('topN').value);
+      const windowSize = parseInt(document.getElementById('windowSize').value);
+      const minThreshold = parseInt(document.getElementById('minThreshold').value);
+      const dateRange = document.getElementById('dateRange').value;
+      
+      console.log('🚀 Starting analysis with params:', { topN, windowSize, minThreshold, dateRange });
+      
+      document.getElementById('loading').classList.add('active');
+      document.getElementById('results').classList.remove('active');
+      
+      setTimeout(async () => {
+        try {
+          // Ensure data is loaded
+          if (!DataConnector.currentData) {
+            console.log('📥 Loading data...');
+            await DataConnector.loadData();
+          }
+          
+          // Pre-calculate inflammation rankings
+          await InflammationRanker.rankCategories();
+          
+          // Get top spikes
+          const spikes = SpikeAnalyzer.getTopSpikes({ topN, minThreshold, dateRange });
+          
+          if (spikes.length === 0) {
+            alert(`No spikes found above threshold of ${minThreshold} aircraft. Try lowering the threshold.`);
+            document.getElementById('loading').classList.remove('active');
+            return;
+          }
+          
+          console.log('🔍 Analyzing', spikes.length, 'spike days...');
+          
+          // Analyze each spike
+          const analyzed = [];
+          for (const spike of spikes) {
+            const triggers = await SpikeAnalyzer.findTriggersForSpike(spike.date, windowSize);
+            analyzed.push({
+              date: spike.date,
+              aircraft: spike.total_aircraft,
+              triggers: triggers
+            });
+          }
+          
+          console.log('✅ Analysis complete');
+          
+          // Separate explained vs unexplained (using confidence threshold of 25%)
+          const explained = analyzed.filter(s => s.triggers.length > 0);
+          const unexplained = analyzed.filter(s => s.triggers.length === 0);
+          
+          console.log('📊 Results:', explained.length, 'explained,', unexplained.length, 'unexplained');
+          
+          // Calculate stats
+          const stats = {
+            totalSpikes: spikes.length,
+            explained: explained.length,
+            unexplained: unexplained.length,
+            avgTriggers: explained.length > 0 
+              ? explained.reduce((sum, s) => sum + s.triggers.length, 0) / explained.length 
+              : 0
+          };
+          
+          // Render results
+          await UIRenderer.renderResults({
+            stats,
+            explained: explained,
+            unexplained: unexplained
+          });
+          
+          document.getElementById('loading').classList.remove('active');
+          document.getElementById('results').classList.add('active');
+          
+        } catch (error) {
+          console.error('❌ Analysis failed:', error);
+          alert('Analysis failed: ' + error.message + '\n\nCheck the console for details.');
+          document.getElementById('loading').classList.remove('active');
+        }
+      }, 300);
+    };
+    
+    // ============================================================================
+    // INITIALIZE
+    // ============================================================================
+    window.addEventListener('DOMContentLoaded', async () => {
+      try {
+        console.log('🎯 Module 9: Actions Roundup initializing...');
+        await DataConnector.loadData();
+        console.log('✅ Module 9 ready');
+      } catch (error) {
+        console.error('❌ Failed to initialize:', error);
+        alert('Failed to load data. Make sure visualizer.html is in the same directory.');
+      }
+    });
+  </script>
+</body>
+</html>
