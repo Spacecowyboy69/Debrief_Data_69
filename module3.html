@@ -278,12 +278,91 @@
       color: #666;
       margin-top: 8px;
     }
+    
+    .tooltip {
+      position: relative;
+      display: inline-block;
+      cursor: help;
+      margin-left: 5px;
+      color: #667eea;
+      font-size: 0.9rem;
+    }
+    
+    .tooltip .tooltiptext {
+      visibility: hidden;
+      width: 280px;
+      background-color: #333;
+      color: #fff;
+      text-align: left;
+      border-radius: 8px;
+      padding: 12px;
+      position: absolute;
+      z-index: 1;
+      bottom: 125%;
+      left: 50%;
+      margin-left: -140px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 0.85rem;
+      line-height: 1.4;
+      font-weight: normal;
+    }
+    
+    .tooltip .tooltiptext::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      margin-left: -5px;
+      border-width: 5px;
+      border-style: solid;
+      border-color: #333 transparent transparent transparent;
+    }
+    
+    .tooltip:hover .tooltiptext {
+      visibility: visible;
+      opacity: 1;
+    }
+    
+    .button-container {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      margin: 30px 0;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+    }
+    
+    .button-container p {
+      text-align: center;
+      color: #666;
+      margin-bottom: 15px;
+      font-size: 0.95rem;
+    }
   </style>
 </head>
 <body>
   <div class="header">
     <h1>⚖️ Module 3: A/B Comparison</h1>
-    <p>Compare two event groups to see which triggers stronger ADIZ reactions</p>
+    <p>Compare two event groups side-by-side to see which triggers stronger ADIZ reactions</p>
+    
+    <div style="background: #f0f4ff; padding: 20px; border-radius: 12px; margin-top: 20px; font-size: 0.95rem; color: #333; line-height: 1.6;">
+      <strong style="color: #667eea; font-size: 1.05rem;">📊 What This Module Does:</strong><br>
+      This tool helps you make data-driven decisions by comparing two filtered event groups to see which triggers 
+      stronger PLA reactions. Perfect for answering questions like:
+      <ul style="margin: 10px 0 10px 25px;">
+        <li><strong>Arms vs Ships:</strong> Which event type is more inflammatory overall?</li>
+        <li><strong>Offensive vs Defensive weapons:</strong> Does weapon type matter?</li>
+        <li><strong>High-value vs Low-value arms sales:</strong> Does dollar amount drive reactions?</li>
+        <li><strong>High-level vs Low-level diplomatic visits:</strong> Who triggers bigger responses?</li>
+        <li><strong>US destroyers vs French frigates:</strong> Which country's ships cause more ADIZ?</li>
+        <li><strong>2024 vs 2022:</strong> Are reactions escalating over time?</li>
+        <li><strong>Air domain vs Land domain weapons:</strong> Which military domain is more sensitive?</li>
+      </ul>
+      <strong style="color: #667eea;">How to use:</strong> Select filters for Group A (blue) and Group B (purple), 
+      then click "Compare Groups" below to see which triggers stronger reactions. You'll get side-by-side stats, 
+      overlaid response curves, and an AI-like recommendation.
+    </div>
+    
     <div class="nav">
       <a href="index.html">← Home</a>
       <a href="visualizer.html">Visualizer</a>
@@ -445,7 +524,7 @@
       </div>
     </div>
     
-    <div class="control-group" style="max-width: 300px; margin: 0 auto;">
+    <div class="control-group" style="max-width: 300px; margin: 0 auto 20px;">
       <label>Window Size</label>
       <select id="windowSize">
         <option value="7">±7 days</option>
@@ -454,7 +533,10 @@
       </select>
     </div>
     
-    <button onclick="runComparison()">⚖️ Compare Groups</button>
+    <div class="button-container">
+      <p><strong>Ready to compare?</strong> Click below to analyze which group triggers stronger reactions:</p>
+      <button onclick="runComparison()">⚖️ Compare Groups</button>
+    </div>
     
     <div class="loading" id="loading">
       ⚖️ Analyzing comparison...
@@ -473,23 +555,48 @@
         <div class="group-stats group-a">
           <h3>🔵 Group A (<span id="groupACount">0</span> events)</h3>
           <div class="stat-row">
-            <span class="stat-label">Avg Increase</span>
+            <span class="stat-label">
+              Avg Increase
+              <span class="tooltip">ℹ️
+                <span class="tooltiptext">Average increase in ADIZ from baseline (30-day pre-event mean) to post-event period. Shows net change in aircraft sent.</span>
+              </span>
+            </span>
             <span class="stat-value" id="groupA_increase">--</span>
           </div>
           <div class="stat-row">
-            <span class="stat-label">Avg Peak</span>
+            <span class="stat-label">
+              Avg Peak
+              <span class="tooltip">ℹ️
+                <span class="tooltiptext">Average highest ADIZ count seen in the window. Shows typical maximum response strength.</span>
+              </span>
+            </span>
             <span class="stat-value" id="groupA_peak">--</span>
           </div>
           <div class="stat-row">
-            <span class="stat-label">7-Day Spike</span>
+            <span class="stat-label">
+              7-Day Spike
+              <span class="tooltip">ℹ️
+                <span class="tooltiptext">Average ADIZ during the 7 days after events. Shows immediate reaction intensity.</span>
+              </span>
+            </span>
             <span class="stat-value" id="groupA_spike">--</span>
           </div>
           <div class="stat-row">
-            <span class="stat-label">Peak on Day</span>
+            <span class="stat-label">
+              Peak on Day
+              <span class="tooltip">ℹ️
+                <span class="tooltiptext">Which day after the event sees the highest ADIZ on average. Shows reaction timing (Day 0 = immediate, Day 3 = delayed).</span>
+              </span>
+            </span>
             <span class="stat-value" id="groupA_peakDay">--</span>
           </div>
           <div class="stat-row">
-            <span class="stat-label">Baseline</span>
+            <span class="stat-label">
+              Baseline
+              <span class="tooltip">ℹ️
+                <span class="tooltiptext">Average ADIZ in the 30 days BEFORE events. Shows "normal" activity level.</span>
+              </span>
+            </span>
             <span class="stat-value" id="groupA_baseline">--</span>
           </div>
         </div>
@@ -497,23 +604,48 @@
         <div class="group-stats group-b">
           <h3>🟣 Group B (<span id="groupBCount">0</span> events)</h3>
           <div class="stat-row">
-            <span class="stat-label">Avg Increase</span>
+            <span class="stat-label">
+              Avg Increase
+              <span class="tooltip">ℹ️
+                <span class="tooltiptext">Average increase in ADIZ from baseline (30-day pre-event mean) to post-event period. Shows net change in aircraft sent.</span>
+              </span>
+            </span>
             <span class="stat-value" id="groupB_increase">--</span>
           </div>
           <div class="stat-row">
-            <span class="stat-label">Avg Peak</span>
+            <span class="stat-label">
+              Avg Peak
+              <span class="tooltip">ℹ️
+                <span class="tooltiptext">Average highest ADIZ count seen in the window. Shows typical maximum response strength.</span>
+              </span>
+            </span>
             <span class="stat-value" id="groupB_peak">--</span>
           </div>
           <div class="stat-row">
-            <span class="stat-label">7-Day Spike</span>
+            <span class="stat-label">
+              7-Day Spike
+              <span class="tooltip">ℹ️
+                <span class="tooltiptext">Average ADIZ during the 7 days after events. Shows immediate reaction intensity.</span>
+              </span>
+            </span>
             <span class="stat-value" id="groupB_spike">--</span>
           </div>
           <div class="stat-row">
-            <span class="stat-label">Peak on Day</span>
+            <span class="stat-label">
+              Peak on Day
+              <span class="tooltip">ℹ️
+                <span class="tooltiptext">Which day after the event sees the highest ADIZ on average. Shows reaction timing (Day 0 = immediate, Day 3 = delayed).</span>
+              </span>
+            </span>
             <span class="stat-value" id="groupB_peakDay">--</span>
           </div>
           <div class="stat-row">
-            <span class="stat-label">Baseline</span>
+            <span class="stat-label">
+              Baseline
+              <span class="tooltip">ℹ️
+                <span class="tooltiptext">Average ADIZ in the 30 days BEFORE events. Shows "normal" activity level.</span>
+              </span>
+            </span>
             <span class="stat-value" id="groupB_baseline">--</span>
           </div>
         </div>
